@@ -1,8 +1,30 @@
-// RUTA: /src/pages/api/events/count.js
+// RUTA: /src/pages/api/events/count.js (Versión Final con CORS)
 
-import { connectToDatabase } from '../../../../lib/database';
+import { connectToDatabase } from '../../../lib/database';
+import cors from 'cors'; // <-- AÑADIDO
+
+// Helper para inicializar CORS
+const corsMiddleware = cors({
+    origin: ['https://buscador.afland.es', 'https://duende-frontend.vercel.app', 'http://localhost:3000', 'https://afland.es'],
+    methods: ['GET', 'OPTIONS'],
+});
+
+// Helper para poder usar middlewares de Express en Next.js
+function runMiddleware(req, res, fn) {
+    return new Promise((resolve, reject) => {
+        fn(req, res, (result) => {
+            if (result instanceof Error) {
+                return reject(result);
+            }
+            return resolve(result);
+        });
+    });
+}
 
 export default async function handler(req, res) {
+    // Ejecutamos el middleware de CORS al principio de la función
+    await runMiddleware(req, res, corsMiddleware); // <-- AÑADIDO
+
     res.setHeader('Cache-control', 'no-store, max-age=0');
     try {
         const db = await connectToDatabase();
