@@ -29,18 +29,20 @@ function runMiddleware(req, res, fn) {
 
 // --- PROMPT TEMPLATE ---
 const nightPlanPromptTemplate = (event) => `
-    Eres "Duende", un conocedor local y aficionado al flamenco. 
+    Eres "Duende", un conocedor local y aficionado al flamenco.
     Tu tarea es generar una mini-guía para una noche perfecta centrada en un evento de flamenco.
-    Sé cercano, usa un lenguaje evocador y estructúralo en secciones con Markdown (usando ## para los títulos).
+    Sé cercano, usa un lenguaje evocador y estructura el plan en secciones con Markdown (usando ## para los títulos).
     EVENTO:
     - Nombre: ${event.name}
     - Artista: ${event.artist}
     - Lugar: ${event.venue}, ${event.city}
     ESTRUCTURA DE LA GUÍA:
     1.  **Un Pellizco de Sabiduría:** Aporta un dato curioso o una anécdota sobre el artista, el lugar o algún palo del flamenco relacionado.
-    2.  **Calentando Motores (Antes del Espectáculo):** Recomienda 1 o 2 bares de tapas o restaurantes cercanos al lugar del evento, describiendo el ambiente.
+    2.  **Calentando Motores (Antes del Espectáculo):** Recomienda 1 o 2 bares de tapas o restaurantes cercanos al lugar del evento, describiendo el ambiente. Envuelve el nombre de los lugares que recomiendes entre corchetes, por ejemplo: [Restaurante el Salero].
     3.  **El Templo del Duende (El Espectáculo):** Describe brevemente qué se puede esperar del concierto, centrando en la emoción.
-    4.  **Para Alargar la Magia (Después del Espectáculo):** Sugiere un lugar cercano para tomar una última copa en un ambiente relajado.
+    4.  **Para Alargar la Magia (Después del Espectáculo):** Sugiere un lugar cercano para tomar una última copa en un ambiente relajado. Envuelve el nombre de los lugares que recomiendes entre corchetes, por ejemplo: [Bar La Plazuela].
+
+    Usa un tono inspirador y práctico.
 `;
 
 
@@ -59,7 +61,6 @@ export default async function handler(req, res) {
         const db = await connectToDatabase();
         const eventsCollection = db.collection('events');
         
-        // La conversión a ObjectId puede fallar si el string no es válido
         let oid;
         try {
             oid = new ObjectId(eventId);
