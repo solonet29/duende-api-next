@@ -1,6 +1,6 @@
 // RUTA: /src/pages/api/events.js
 
-import { connectToDatabase } from '../../../lib/database';
+import { connectToDatabase } from '../../../../lib/database';
 import cors from 'cors';
 
 // Helper para inicializar CORS, necesario en Next.js
