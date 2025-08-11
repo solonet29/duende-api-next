@@ -12,7 +12,7 @@ const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
 // --- MIDDLEWARE DE CORS ---
 const corsMiddleware = cors({
-    origin: ['https://buscador.afland.es', 'https://duende-frontend.vercel.app', 'http://localhost:3000', 'https://afland.es'],
+    origin: ['https://buscador.afland.es', 'https://duende-frontend.vercel.app', 'http://localhost:3000', 'https://afland.es', 'http://127.0.0.1:5500'],
     methods: ['GET', 'OPTIONS'],
 });
 
