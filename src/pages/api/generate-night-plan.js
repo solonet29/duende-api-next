@@ -38,9 +38,9 @@ const nightPlanPromptTemplate = (event) => `
     - Lugar: ${event.venue}, ${event.city}
     ESTRUCTURA DE LA GUÍA:
     1.  **Un Pellizco de Sabiduría:** Aporta un dato curioso o una anécdota sobre el artista, el lugar o algún palo del flamenco relacionado.
-    2.  **Calentando Motores (Antes del Espectáculo):** Recomienda 1 o 2 bares de tapas o restaurantes cercanos al lugar del evento, describiendo el ambiente. Envuelve el nombre de los lugares entre corchetes. Ejemplo: [Restaurante el Salero].
+    2.  **Calentando Motores (Antes del Espectáculo):** Recomienda 1 o 2 bares de tapas o restaurantes cercanos al lugar del evento, describiendo el ambiente. Envuelve el nombre de los lugares que recomiendes entre corchetes, por ejemplo: [Restaurante el Salero].
     3.  **El Templo del Duende (El Espectáculo):** Describe brevemente qué se puede esperar del concierto, centrando en la emoción.
-    4.  **Para Alargar la Magia (Después del Espectáculo):** Sugiere un lugar cercano para tomar una última copa en un ambiente relajado. Envuelve el nombre de los lugares entre corchetes. Ejemplo: [Bar La Plazuela].
+    4.  **Para Alargar la Magia (Después del Espectáculo):** Sugiere un lugar cercano para tomar una última copa en un ambiente relajado. Envuelve el nombre de los lugares que recomiendes entre corchetes, por ejemplo: [Bar La Plazuela].
 
     Usa un tono inspirador y práctico.
 `;
