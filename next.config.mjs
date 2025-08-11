@@ -12,14 +12,16 @@ const nextConfig = {
         destination: '/api/events/count',
       },
       {
-        // LA REGLA QUE FALTABA
         source: '/generate-night-plan',
         destination: '/api/generate-night-plan',
+      },
+      {
+        source: '/trip-planner',
+        destination: '/api/trip-planner',
       },
     ]
   },
 }
 
-// Si tu archivo es .mjs, usa export default. Si es .js, usa module.exports
-export default nextConfig; 
-// module.exports = nextConfig;
+// Si tu archivo es .mjs, usa export default. Si es .js, usa module.exports.
+export default nextConfig;
