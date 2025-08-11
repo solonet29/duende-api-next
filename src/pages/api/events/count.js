@@ -1,25 +1,14 @@
 // RUTA: /src/pages/api/events/count.js (Versión Final con CORS)
 
 import { connectToDatabase } from '@/lib/database.js';
-import cors from 'cors'; // <-- AÑADIDO
+import runMiddleware from '@/lib/cors'; // <--- Importa el helper que creaste
+import Cors from 'cors'; // <--- Importa la librería
 
 // Helper para inicializar CORS
-const corsMiddleware = cors({
+const corsMiddleware = Cors({
     origin: ['https://buscador.afland.es', 'https://duende-frontend.vercel.app', 'http://localhost:3000', 'https://afland.es'],
     methods: ['GET', 'OPTIONS'],
 });
-
-// Helper para poder usar middlewares de Express en Next.js
-function runMiddleware(req, res, fn) {
-    return new Promise((resolve, reject) => {
-        fn(req, res, (result) => {
-            if (result instanceof Error) {
-                return reject(result);
-            }
-            return resolve(result);
-        });
-    });
-}
 
 export default async function handler(req, res) {
     // Ejecutamos el middleware de CORS al principio de la función

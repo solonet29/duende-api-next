@@ -5,8 +5,9 @@ import cors from 'cors';
 import fetch from 'node-fetch';
 
 // --- MIDDLEWARE DE CORS ---
+// --- MIDDLEWARE DE CORS ---
 const corsMiddleware = cors({
-    origin: ['https://buscador.afland.es', 'https://duende-frontend.vercel.app', 'http://localhost:3000', 'https://afland.es'],
+    origin: ['https://buscador.afland.es', 'https://duende-frontend.vercel.app', 'http://localhost:3000', 'https://afland.es', 'http://127.0.0.1:5500'], // Añadido el origen de tu Live Server
     methods: ['POST', 'OPTIONS'], // Nos aseguramos de permitir POST y OPTIONS
 });
 
