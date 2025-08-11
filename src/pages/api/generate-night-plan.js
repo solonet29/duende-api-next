@@ -1,6 +1,6 @@
 // RUTA: /src/pages/api/generate-night-plan.js
 
-import { connectToDatabase } from '../../../../lib/database';
+import { connectToDatabase } from '@/lib/database.js';
 import { ObjectId } from 'mongodb';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import cors from 'cors';

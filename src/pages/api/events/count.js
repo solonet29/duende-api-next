@@ -1,6 +1,6 @@
 // RUTA: /src/pages/api/events/count.js (Versión Final con CORS)
 
-import { connectToDatabase } from '../../../../lib/database';
+import { connectToDatabase } from '@/lib/database.js';
 import cors from 'cors'; // <-- AÑADIDO
 
 // Helper para inicializar CORS
