@@ -5,7 +5,7 @@ import cors from 'cors';
 
 // Helper para inicializar CORS, necesario en Next.js
 const corsMiddleware = cors({
-    origin: ['https://buscador.afland.es', 'https://duende-frontend.vercel.app', 'http://localhost:3000', 'https://afland.es'],
+    origin: ['https://buscador.afland.es', 'https://duende-frontend.vercel.app', 'http://localhost:3000', 'https://afland.es', 'http://127.0.0.1:5500'], // <-- AÑADIDO
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 });
