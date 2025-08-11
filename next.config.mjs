@@ -11,14 +11,15 @@ const nextConfig = {
         source: '/events/count',
         destination: '/api/events/count',
       },
-      // Mañana, cuando migremos las otras rutas, las añadiremos aquí.
-      // Por ejemplo:
-      // {
-      //   source: '/generate-night-plan',
-      //   destination: '/api/generate-night-plan',
-      // },
+      {
+        // LA REGLA QUE FALTABA
+        source: '/generate-night-plan',
+        destination: '/api/generate-night-plan',
+      },
     ]
   },
 }
 
-export default nextConfig;
+// Si tu archivo es .mjs, usa export default. Si es .js, usa module.exports
+export default nextConfig; 
+// module.exports = nextConfig;
