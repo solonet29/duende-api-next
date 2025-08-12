@@ -25,16 +25,16 @@ function runMiddleware(req, res, fn) {
 export default async function handler(req, res) {
     // Primero ejecutamos el middleware de CORS para permitir las peticiones del frontend
     await runMiddleware(req, res, corsMiddleware);
-
+    res.setHeader('Access-Control-Allow-Origin', 'https://buscador.afland.es');
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
     try {
         const db = await connectToDatabase();
         const eventsCollection = db.collection("events");
         const { search, artist, city, country, dateFrom, dateTo, timeframe, preferredOption } = req.query;
         let aggregationPipeline = [];
-        
+
         const ciudadesYProvincias = [
-            'Sevilla', 'Málaga', 'Granada', 'Cádiz', 'Córdoba', 'Huelva', 'Jaén', 'Almería', 
+            'Sevilla', 'Málaga', 'Granada', 'Cádiz', 'Córdoba', 'Huelva', 'Jaén', 'Almería',
             'Madrid', 'Barcelona', 'Valencia', 'Murcia', 'Alicante', 'Bilbao', 'Zaragoza',
             'Jerez', 'Úbeda', 'Baeza', 'Ronda', 'Estepona', 'Lebrija', 'Morón de la Frontera',
             'Utrera', 'Algeciras', 'Cartagena', 'Logroño', 'Santander', 'Vitoria', 'Pamplona',
@@ -43,8 +43,8 @@ export default async function handler(req, res) {
         ];
         const paises = ['Argentina', 'España', 'Francia'];
         const terminosAmbiguos = {
-         'argentina': { type: 'multi', options: ['country', 'artist'] },
-         'granaino': { type: 'multi', options: ['city', 'artist'] }
+            'argentina': { type: 'multi', options: ['country', 'artist'] },
+            'granaino': { type: 'multi', options: ['city', 'artist'] }
         };
 
         const matchFilter = {};
@@ -56,10 +56,10 @@ export default async function handler(req, res) {
         matchFilter.artist = { $ne: null, $nin: ["", "N/A"] };
         matchFilter.time = { $ne: null, $nin: ["", "N/A"] };
         matchFilter.venue = { $ne: null, $nin: ["", "N/A"] };
-        
+
         if (search) {
             const normalizedSearch = search.trim().toLowerCase();
-            
+
             if (terminosAmbiguos[normalizedSearch] && !preferredOption) {
                 return res.status(200).json({
                     isAmbiguous: true,
@@ -70,13 +70,13 @@ export default async function handler(req, res) {
 
             let searchType = null;
             if (preferredOption) {
-              searchType = preferredOption;
+                searchType = preferredOption;
             } else if (ciudadesYProvincias.some(cp => cp.toLowerCase() === normalizedSearch)) {
-              searchType = 'city';
+                searchType = 'city';
             } else if (paises.some(p => p.toLowerCase() === normalizedSearch)) {
-              searchType = 'country';
+                searchType = 'country';
             } else {
-              searchType = 'text';
+                searchType = 'text';
             }
 
             if (searchType === 'city') {
@@ -85,30 +85,30 @@ export default async function handler(req, res) {
             } else if (searchType === 'country') {
                 matchFilter.country = { $regex: new RegExp(`^${search}$`, 'i') };
             } else if (searchType === 'artist') {
-                 aggregationPipeline.push({
-                     $search: {
-                         index: 'buscador',
-                         text: {
-                             query: search,
-                             path: 'artist',
-                             fuzzy: { "maxEdits": 1 }
-                         }
-                     }
-                 });
+                aggregationPipeline.push({
+                    $search: {
+                        index: 'buscador',
+                        text: {
+                            query: search,
+                            path: 'artist',
+                            fuzzy: { "maxEdits": 1 }
+                        }
+                    }
+                });
             } else { // 'text'
-                aggregationPipeline.push({ 
-                    $search: { 
-                        index: 'buscador', 
-                        text: { 
-                            query: search, 
-                            path: { 'wildcard': '*' }, 
-                            fuzzy: { "maxEdits": 1 } 
-                        } 
-                    } 
+                aggregationPipeline.push({
+                    $search: {
+                        index: 'buscador',
+                        text: {
+                            query: search,
+                            path: { 'wildcard': '*' },
+                            fuzzy: { "maxEdits": 1 }
+                        }
+                    }
                 });
             }
         }
-        
+
         if (city) {
             const locationRegex = new RegExp(city, 'i');
             matchFilter.$or = [{ city: locationRegex }, { provincia: locationRegex }];
@@ -122,10 +122,10 @@ export default async function handler(req, res) {
             nextWeek.setDate(today.getDate() + 7);
             matchFilter.date.$lte = nextWeek.toISOString().split('T')[0];
         }
-        
+
         aggregationPipeline.push({ $match: matchFilter });
         aggregationPipeline.push({ $sort: { date: 1 } });
-        
+
         const events = await eventsCollection.aggregate(aggregationPipeline).toArray();
         res.status(200).json({ events, isAmbiguous: false });
     } catch (error) {
