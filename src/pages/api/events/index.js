@@ -1,4 +1,4 @@
-import { connectToDatabase } from '@lib/database.js';
+import { connectToDatabase } from '@/lib/database.js';
 import cors from 'cors';
 
 const corsMiddleware = cors({
