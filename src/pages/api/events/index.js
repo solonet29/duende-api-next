@@ -37,7 +37,16 @@ export default async function handler(req, res) {
     try {
         const db = await connectToDatabase();
         const eventsCollection = db.collection("events");
-        const { search, artist, city, country, dateFrom, dateTo, timeframe, preferredOption } = req.query;
+        const {
+            search = null,
+            artist = null,
+            city = null,
+            country = null,
+            dateFrom = null,
+            dateTo = null,
+            timeframe = null,
+            preferredOption = null
+        } = req.query;
         let aggregationPipeline = [];
 
         const ciudadesYProvincias = [
