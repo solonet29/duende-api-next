@@ -88,9 +88,10 @@ if (search) {
         return res.status(200).json({
             isAmbiguous: true,
             searchTerm: search,
-            options: terminosAmbiguos[normalizedSearch].options
+            options: terminosAmbiguos[normalizedSearch].options,
         });
     }
+
 
     let searchType = null;
     if (preferredOption) {
