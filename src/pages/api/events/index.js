@@ -84,7 +84,7 @@ matchFilter.venue = { $ne: null, $nin: ["", "N/A"] };
 if (search) {
     const normalizedSearch = search.trim().toLowerCase();
 
-    if (terminosAmbiguos[normalizedSearch] && !preferredOption) {
+    if (terminosAmbiguos[normalizedSearch] && preferredOption) {
         return res.status(200).json({
             isAmbiguous: true,
             searchTerm: search,
