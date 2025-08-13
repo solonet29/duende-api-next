@@ -1,21 +1,19 @@
 import { connectToDatabase } from '@/lib/database.js';
 import cors from 'cors';
 
-// Helper para inicializar CORS, necesario en Next.js
 const corsMiddleware = cors({
     origin: [
         'https://buscador.afland.es',
         'https://duende-frontend.vercel.app',
         'https://afland.es',
         'http://localhost:3000',
-        'http://127.0.0.1:5500', // <-- Desarrollo local
-        'http://0.0.0.0:5500'   // <-- Desarrollo local
+        'http://127.0.0.1:5500',
+        'http://0.0.0.0:5500'
     ],
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 });
 
-// Helper para poder usar middlewares de Express en Next.js
 function runMiddleware(req, res, fn) {
     return new Promise((resolve, reject) => {
         fn(req, res, (result) => {
@@ -28,17 +26,23 @@ function runMiddleware(req, res, fn) {
 }
 
 export default async function handler(req, res) {
-    // Primero ejecutamos el middleware de CORS
     await runMiddleware(req, res, corsMiddleware);
-
-    // Hemos comentado esta línea porque ya no es necesaria y entra en conflicto con el middleware.
-    // res.setHeader('Access-Control-Allow-Origin', 'https://buscador.afland.es');
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
+
     try {
         const db = await connectToDatabase();
         const eventsCollection = db.collection("events");
-        const { search, artist, city, country, dateFrom, dateTo, timeframe, preferredOption } = req.query;
-        let aggregationPipeline = [];
+
+        const {
+            search = null,
+            artist = null,
+            city = null,
+            country = null,
+            dateFrom = null,
+            dateTo = null,
+            timeframe = null,
+            preferredOption = null
+        } = req.query;
 
         const ciudadesYProvincias = [
             'Sevilla', 'Málaga', 'Granada', 'Cádiz', 'Córdoba', 'Huelva', 'Jaén', 'Almería',
@@ -51,7 +55,6 @@ export default async function handler(req, res) {
         const paises = ['Argentina', 'España', 'Francia'];
         const terminosAmbiguos = {
             'argentina': { type: 'multi', options: ['country', 'artist'] },
-            'granaino': { type: 'multi', options: ['city', 'artist'] }
         };
 
         const matchFilter = {};
@@ -64,14 +67,16 @@ export default async function handler(req, res) {
         matchFilter.time = { $ne: null, $nin: ["", "N/A"] };
         matchFilter.venue = { $ne: null, $nin: ["", "N/A"] };
 
+        let aggregationPipeline = [];
+
         if (search) {
             const normalizedSearch = search.trim().toLowerCase();
 
-            if (terminosAmbiguos[normalizedSearch] && !preferredOption) {
+            if (terminosAmbiguos[normalizedSearch] && preferredOption) {
                 return res.status(200).json({
                     isAmbiguous: true,
                     searchTerm: search,
-                    options: terminosAmbiguos[normalizedSearch].options
+                    options: terminosAmbiguos[normalizedSearch].options,
                 });
             }
 
@@ -135,8 +140,9 @@ export default async function handler(req, res) {
 
         const events = await eventsCollection.aggregate(aggregationPipeline).toArray();
         res.status(200).json({ events, isAmbiguous: false });
-    } catch (error) {
-        console.error("Error al buscar eventos:", error);
-        res.status(500).json({ error: "Error interno del servidor." });
+
+    } catch (err) {
+        console.error("Error en /api/events:", err);
+        res.status(500).json({ error: "Internal Server Error", details: err.message });
     }
 }
