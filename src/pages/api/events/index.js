@@ -152,8 +152,10 @@ aggregationPipeline.push({ $sort: { date: 1 } });
 
 const events = await eventsCollection.aggregate(aggregationPipeline).toArray();
 res.status(200).json({ events, isAmbiguous: false });
-    } catch (error) {
+try {
+    const events = await eventsCollection.aggregate(aggregationPipeline).toArray();
+    res.status(200).json({ events, isAmbiguous: false });
+} catch (error) {
     console.error("Error al buscar eventos:", error);
     res.status(500).json({ error: "Error interno del servidor." });
-}
 }
