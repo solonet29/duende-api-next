@@ -1,11 +1,16 @@
-// RUTA: /src/pages/api/events.js
-
-import { connectToDatabase } from '@/lib/database.js';
+import { connectToDatabase } from '@lib/database.js';
 import cors from 'cors';
 
 // Helper para inicializar CORS, necesario en Next.js
 const corsMiddleware = cors({
-    origin: ['https://buscador.afland.es', 'https://duende-frontend.vercel.app', 'http://localhost:3000', 'https://afland.es', 'http://127.0.0.1:5500', 'http://0.0.0.0:5500'], // <-- ¡AÑADIDO!
+    origin: [
+        'https://buscador.afland.es',
+        'https://duende-frontend.vercel.app',
+        'https://afland.es',
+        'http://localhost:3000',
+        'http://127.0.0.1:5500', // <-- Desarrollo local
+        'http://0.0.0.0:5500'   // <-- Desarrollo local
+    ],
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 });
@@ -23,9 +28,11 @@ function runMiddleware(req, res, fn) {
 }
 
 export default async function handler(req, res) {
-    // Primero ejecutamos el middleware de CORS para permitir las peticiones del frontend
+    // Primero ejecutamos el middleware de CORS
     await runMiddleware(req, res, corsMiddleware);
-    res.setHeader('Access-Control-Allow-Origin', 'https://buscador.afland.es');
+
+    // Hemos comentado esta línea porque ya no es necesaria y entra en conflicto con el middleware.
+    // res.setHeader('Access-Control-Allow-Origin', 'https://buscador.afland.es');
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
     try {
         const db = await connectToDatabase();
