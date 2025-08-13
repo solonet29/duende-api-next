@@ -68,7 +68,6 @@ const ciudadesYProvincias = [
 const paises = ['Argentina', 'España', 'Francia'];
 const terminosAmbiguos = {
     'argentina': { type: 'multi', options: ['country', 'artist'] },
-    'granaino': { type: 'multi', options: ['city', 'artist'] }
 };
 
 const matchFilter = {};
