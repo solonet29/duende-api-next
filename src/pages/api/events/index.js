@@ -41,9 +41,40 @@ export default async function handler(req, res) {
             dateFrom = null,
             dateTo = null,
             timeframe = null,
-            preferredOption = null
+            preferredOption = null,
+            lat = null,
+            lon = null,
+            radius = null
         } = req.query;
 
+        // --- LÓGICA DE GEOLOCALIZACIÓN ---
+        if (lat && lon && radius) {
+            const latitude = parseFloat(lat);
+            const longitude = parseFloat(lon);
+            const searchRadiusMeters = parseFloat(radius) * 1000;
+
+            if (isNaN(latitude) || isNaN(longitude) || isNaN(searchRadiusMeters)) {
+                return res.status(400).json({ message: 'Parámetros de geolocalización inválidos.' });
+            }
+
+            const events = await eventsCollection.aggregate([
+                {
+                    $geoNear: {
+                        near: {
+                            type: 'Point',
+                            coordinates: [longitude, latitude]
+                        },
+                        distanceField: 'dist.calculated',
+                        maxDistance: searchRadiusMeters,
+                        spherical: true
+                    }
+                }
+            ]).toArray();
+
+            return res.status(200).json({ events, isAmbigious: false });
+        }
+
+        // --- LÓGICA DE BÚSQUEDA GENERAL (código existente) ---
         const ciudadesYProvincias = [
             'Sevilla', 'Málaga', 'Granada', 'Cádiz', 'Córdoba', 'Huelva', 'Jaén', 'Almería',
             'Madrid', 'Barcelona', 'Valencia', 'Murcia', 'Alicante', 'Bilbao', 'Zaragoza',
