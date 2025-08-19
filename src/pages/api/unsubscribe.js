@@ -2,10 +2,13 @@
 import { connectToDatabase } from '../../../lib/database';
 
 export default async function handler(req, res) {
+  // Configurar CORS para todas las respuestas de esta ruta
+  res.setHeader('Access-Control-Allow-Origin', 'https://buscador.afland.es');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Manejar la solicitud pre-vuelo OPTIONS
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     return res.status(200).end();
   }
 
