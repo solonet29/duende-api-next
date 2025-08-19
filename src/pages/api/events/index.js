@@ -8,7 +8,8 @@ const corsMiddleware = cors({
         'https://afland.es',
         'http://localhost:3000',
         'http://127.0.0.1:5500',
-        'http://0.0.0.0:5500'
+        'http://0.0.0.0:5500',
+        'http://localhost:5173'
     ],
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -67,6 +68,17 @@ export default async function handler(req, res) {
                         distanceField: 'dist.calculated',
                         maxDistance: searchRadiusMeters,
                         spherical: true
+                    }
+                },
+                {
+                    $group: {
+                        _id: { date: "$date", artist: "$artist" },
+                        firstEvent: { $first: "$$ROOT" }
+                    }
+                },
+                {
+                    $replaceRoot: {
+                        newRoot: "$firstEvent"
                     }
                 }
             ]).toArray();
@@ -167,6 +179,23 @@ export default async function handler(req, res) {
         }
 
         aggregationPipeline.push({ $match: matchFilter });
+        aggregationPipeline.push({
+            $group: {
+                _id: { date: "$date", artist: "$artist" },
+                firstEvent: { $first: "$$ROOT" }
+            }
+        });
+        // AÑADIDO: Filtrar cualquier grupo que haya resultado en un evento nulo
+        aggregationPipeline.push({
+            $match: {
+                firstEvent: { $ne: null }
+            }
+        });
+        aggregationPipeline.push({
+            $replaceRoot: {
+                newRoot: "$firstEvent"
+            }
+        });
         aggregationPipeline.push({ $sort: { date: 1 } });
 
         const events = await eventsCollection.aggregate(aggregationPipeline).toArray();

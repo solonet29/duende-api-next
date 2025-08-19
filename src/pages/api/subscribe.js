@@ -1,15 +1,20 @@
 // RUTA: /src/pages/api/subscribe.js
 import { connectToDatabase } from '../../../lib/database';
-import '../../../lib/webPush'; // Importa para asegurar que la configuración de web-push se ejecute
+import '../../../lib/webPush';
 
 export default async function handler(req, res) {
+  const allowedOrigins = ['https://buscador.afland.es', 'http://localhost:5173'];
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     return res.status(200).end();
   }
-
+  
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST', 'OPTIONS']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
@@ -25,11 +30,10 @@ export default async function handler(req, res) {
     const db = await connectToDatabase();
     const collection = db.collection('push_subscriptions');
 
-    // Opcional: Evitar duplicados basados en el endpoint
     await collection.updateOne(
       { endpoint: subscription.endpoint },
       { $set: subscription },
-      { upsert: true } // Inserta si no existe, actualiza si ya está
+      { upsert: true }
     );
 
     console.log('Suscripción guardada:', subscription.endpoint);
