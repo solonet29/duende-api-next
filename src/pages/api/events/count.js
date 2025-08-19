@@ -17,7 +17,7 @@ function runMiddleware(req, res, fn) {
 
 // Configuración de CORS específica para este endpoint
 const corsMiddleware = cors({
-  origin: ['https://buscador.afland.es', 'https://duende-frontend.vercel.app', 'http://localhost:3000', 'https://afland.es', 'http://127.0.0.1:5500'],
+  origin: ['https://buscador.afland.es', 'https://duende-frontend.vercel.app', 'http://localhost:3000', 'https://afland.es', 'http://127.0.0.1:5500', 'http://localhost:5173'],
   methods: ['GET', 'OPTIONS'],
 });
 
