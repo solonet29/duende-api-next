@@ -50,7 +50,7 @@ const nightPlanPromptTemplate = (event) => `
 export default async function handler(req, res) {
     await runMiddleware(req, res, corsMiddleware);
     res.setHeader('Cache-Control', 'no-store, max-age=0');
-    
+
     const { eventId } = req.query;
 
     if (!eventId) {
@@ -60,14 +60,14 @@ export default async function handler(req, res) {
     try {
         const db = await connectToDatabase();
         const eventsCollection = db.collection('events');
-        
+
         let oid;
         try {
             oid = new ObjectId(eventId);
         } catch (e) {
             return res.status(400).json({ error: 'El ID del evento no es válido.' });
         }
-        
+
         const event = await eventsCollection.findOne({ _id: oid });
 
         if (!event) {
@@ -85,7 +85,8 @@ export default async function handler(req, res) {
         let generatedContent = result.response.text();
 
         // --- FIX: Corregir enlaces de Markdown mal formados ---
-        generatedContent = generatedContent.replace(/(\b[A-Z][a-zA-Z\s,.'-ñÑáéíóúÁÉÍÓÚ]+)\]\((https:\/\/www\.google\.com\/maps\/search\/\?[^)]+)\)/g, '[\1]($2)');
+        //                      👇 Aquí el cambio
+        generatedContent = generatedContent.replace(/(\b[A-Z][a-zA-Z\s,.'-ñÑáéíóúÁÉÍÓÚ]+)\]\((https:\/\/www\.google\.com\/maps\/search\/\?[^)]+)\)/g, '[$1]($2)');
 
         await eventsCollection.updateOne(
             { _id: oid },
