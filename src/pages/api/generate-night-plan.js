@@ -82,7 +82,10 @@ export default async function handler(req, res) {
         console.log(`🔥 Generando nuevo contenido "Planear Noche" para: ${event.name}`);
         const prompt = nightPlanPromptTemplate(event);
         const result = await model.generateContent(prompt);
-        const generatedContent = result.response.text();
+        let generatedContent = result.response.text();
+
+        // --- FIX: Corregir enlaces de Markdown mal formados ---
+        generatedContent = generatedContent.replace(/(\b[A-Z][a-zA-Z\s,.'-ñÑáéíóúÁÉÍÓÚ]+)\]\((https:\/\/www\.google\.com\/maps\/search\/\?[^)]+)\)/g, '[\1]($2)');
 
         await eventsCollection.updateOne(
             { _id: oid },
