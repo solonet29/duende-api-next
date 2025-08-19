@@ -90,7 +90,7 @@ export default async function handler(req, res) {
             res.status(500).json({ error: "Error interno del servidor." });
         }
     } else {
-        // Si el método no es POST, rechaza la petición.
+        // Si el método no es POST, rechaza la petición con el error 405.
         res.setHeader('Allow', ['POST']);
         res.status(405).end(`Method ${req.method} Not Allowed`);
     }
