@@ -68,6 +68,17 @@ export default async function handler(req, res) {
                         maxDistance: searchRadiusMeters,
                         spherical: true
                     }
+                },
+                {
+                    $group: {
+                        _id: { date: "$date", artist: "$artist" },
+                        firstEvent: { $first: "$ROOT" }
+                    }
+                },
+                {
+                    $replaceRoot: {
+                        newRoot: "$firstEvent"
+                    }
                 }
             ]).toArray();
 
@@ -167,6 +178,17 @@ export default async function handler(req, res) {
         }
 
         aggregationPipeline.push({ $match: matchFilter });
+        aggregationPipeline.push({
+            $group: {
+                _id: { date: "$date", artist: "$artist" },
+                firstEvent: { $first: "$ROOT" }
+            }
+        });
+        aggregationPipeline.push({
+            $replaceRoot: {
+                newRoot: "$firstEvent"
+            }
+        });
         aggregationPipeline.push({ $sort: { date: 1 } });
 
         const events = await eventsCollection.aggregate(aggregationPipeline).toArray();
