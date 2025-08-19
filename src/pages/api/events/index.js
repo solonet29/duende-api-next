@@ -30,6 +30,7 @@ export default async function handler(req, res) {
     await runMiddleware(req, res, corsMiddleware);
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
 
+
     try {
         const db = await connectToDatabase();
         const eventsCollection = db.collection("events");
