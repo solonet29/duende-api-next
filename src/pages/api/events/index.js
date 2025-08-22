@@ -81,6 +81,12 @@ export default async function handler(req, res) {
                     $replaceRoot: {
                         newRoot: "$firstEvent"
                     }
+                },
+                {
+                    $addFields: {
+                        contentStatus: "$contentStatus",
+                        blogPostUrl: "$blogPostUrl"
+                    }
                 }
             ]).toArray();
 
@@ -195,6 +201,12 @@ export default async function handler(req, res) {
         aggregationPipeline.push({
             $replaceRoot: {
                 newRoot: "$firstEvent"
+            }
+        });
+        aggregationPipeline.push({
+            $addFields: {
+                contentStatus: '$contentStatus',
+                blogPostUrl: '$blogPostUrl'
             }
         });
         aggregationPipeline.push({ $sort: { date: 1 } });
