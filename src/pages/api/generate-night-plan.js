@@ -1,4 +1,5 @@
 // RUTA: /src/pages/api/generate-night-plan.js
+// VERSIÓN REFACTORIZADA
 
 import { connectToDatabase } from '@/lib/database.js';
 import { ObjectId } from 'mongodb';
@@ -27,26 +28,52 @@ function runMiddleware(req, res, fn) {
     });
 }
 
-// --- PROMPT TEMPLATE ---
+
+// --- LÓGICA DE GENERACIÓN (AHORA EN UNA FUNCIÓN REUTILIZABLE) ---
 const nightPlanPromptTemplate = (event) => `
     Eres "Duende", un conocedor local y aficionado al flamenco.
     Tu tarea es generar una mini-guía para una noche perfecta centrada en un evento de flamenco.
     Sé cercano, usa un lenguaje evocador y estructura el plan en secciones con Markdown (usando ## para los títulos).
+
+    **REGLA MUY IMPORTANTE: Tu respuesta debe empezar DIRECTAMENTE con el primer título en Markdown (##). No incluyas saludos, introducciones o texto conversacional antes de la guía.**
+
     EVENTO:
     - Nombre: ${event.name}
     - Artista: ${event.artist}
     - Lugar: ${event.venue}, ${event.city}
     ESTRUCTURA DE LA GUÍA:
     1.  **Un Pellizco de Sabiduría:** Aporta un dato curioso o una anécdota sobre el artista, el lugar o algún palo del flamenco relacionado.
-    2.  **Calentando Motores (Antes del Espectáculo):** Recomienda 1 o 2 bares de tapas o restaurantes cercanos al lugar del evento, describiendo el ambiente. Para cada lugar, crea un enlace de Google Maps usando Markdown. Por ejemplo: [Restaurante el Salero](https://www.google.com/maps/search/?api=1&query=Restaurante+el+Salero).
+    2.  **Calentando Motores (Antes del Espectáculo):** Recomienda 1 o 2 bares de tapas o restaurantes cercanos al lugar del evento, describiendo el ambiente. Para cada lugar, crea un enlace de Google Maps usando Markdown.
     3.  **El Templo del Duende (El Espectáculo):** Describe brevemente qué se puede esperar del concierto, centrando en la emoción.
-    4.  **Para Alargar la Magia (Después del Espectáculo):** Sugiere un lugar cercano para tomar una última copa en un ambiente relajado. Para cada lugar, crea un enlace de Google Maps usando Markdown. Por ejemplo: [Bar La Plazuela](https://www.google.com/maps/search/?api=1&query=Bar+La+Plazuela).
+    4.  **Para Alargar la Magia (Después del Espectáculo):** Sugiere un lugar cercano para tomar una última copa en un ambiente relajado.
 
     Usa un tono inspirador y práctico.
 `;
 
+async function generateAndSavePlan(db, event) {
+    console.log(`🔥 Generando nuevo contenido "Planear Noche" para: ${event.name}`);
+    const prompt = nightPlanPromptTemplate(event);
+    const result = await model.generateContent(prompt);
+    let generatedContent = result.response.text();
 
-// --- HANDLER DE LA RUTA ---
+    // --- CONTROL DE CALIDAD ---
+    if (!generatedContent || !generatedContent.includes('##')) {
+        throw new Error("La respuesta de la IA no tiene el formato de plan esperado.");
+    }
+
+    // --- FIX: Corregir enlaces de Markdown mal formados ---
+    generatedContent = generatedContent.replace(/(\b[A-Z][a-zA-Z\s,.'-ñÑáéíóúÁÉÍÓÚ]+)\]\((https:\/\/www\.google\.com\/maps\/search\/\?[^)]+)\)/g, '[$1]($2)');
+
+    await db.collection('events').updateOne(
+        { _id: event._id },
+        { $set: { nightPlan: generatedContent } }
+    );
+    console.log(`💾 Contenido para "${event.name}" guardado en la base de datos.`);
+    return generatedContent;
+}
+
+
+// --- HANDLER DE LA RUTA (AHORA MÁS LIMPIO) ---
 export default async function handler(req, res) {
     await runMiddleware(req, res, corsMiddleware);
     res.setHeader('Cache-Control', 'no-store, max-age=0');
@@ -74,26 +101,14 @@ export default async function handler(req, res) {
             return res.status(404).json({ error: 'Evento no encontrado.' });
         }
 
+        // 1. Comprueba si el plan ya existe en la "caché" de la base de datos
         if (event.nightPlan) {
             console.log(`✅ Devolviendo contenido cacheado para el evento: ${event.name}`);
             return res.status(200).json({ content: event.nightPlan, source: 'cache' });
         }
 
-        console.log(`🔥 Generando nuevo contenido "Planear Noche" para: ${event.name}`);
-        const prompt = nightPlanPromptTemplate(event);
-        const result = await model.generateContent(prompt);
-        let generatedContent = result.response.text();
-
-        // --- FIX: Corregir enlaces de Markdown mal formados ---
-        //                      👇 Aquí el cambio
-        generatedContent = generatedContent.replace(/(\b[A-Z][a-zA-Z\s,.'-ñÑáéíóúÁÉÍÓÚ]+)\]\((https:\/\/www\.google\.com\/maps\/search\/\?[^)]+)\)/g, '[$1]($2)');
-
-        await eventsCollection.updateOne(
-            { _id: oid },
-            { $set: { nightPlan: generatedContent } }
-        );
-        console.log(`💾 Contenido para "${event.name}" guardado en la base de datos.`);
-
+        // 2. Si no existe, llama a la función reutilizable para generarlo
+        const generatedContent = await generateAndSavePlan(db, event);
         return res.status(200).json({ content: generatedContent, source: 'generated' });
 
     } catch (error) {
