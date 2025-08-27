@@ -80,7 +80,7 @@ export default async function handler(req, res) {
         if (lat && lon && radius) {
             const latitude = parseFloat(lat);
             const longitude = parseFloat(lon);
-            const searchRadiusMeters = parseFloat(radius) * 1000;
+            const searchRadiusMeters = (parseFloat(req.query.radius) || 60) * 1000;
 
             if (isNaN(latitude) || isNaN(longitude) || isNaN(searchRadiusMeters)) {
                 return res.status(400).json({ message: 'Parámetros de geolocalización inválidos.' });
@@ -191,9 +191,9 @@ export default async function handler(req, res) {
         // 6. (OPCIONAL) ORDENACIÓN FINAL
         // Si hubo búsqueda geoespacial, los resultados ya vienen ordenados por distancia.
         // Si no, los ordenamos por fecha.
-        if (!lat) {
-            aggregationPipeline.push({ $sort: { date: 1 } });
-        }
+
+        aggregationPipeline.push({ $sort: { date: 1 } });
+
 
         // 7. EJECUTAMOS EL PIPELINE
         const events = await eventsCollection.aggregate(aggregationPipeline).toArray();
