@@ -1,6 +1,7 @@
 import { connectToDatabase } from '@/lib/database.js';
 import cors from 'cors';
 
+// --- CONFIGURACIÓN DE CORS ---
 const corsMiddleware = cors({
     origin: [
         'https://buscador.afland.es',
@@ -26,10 +27,11 @@ function runMiddleware(req, res, fn) {
     });
 }
 
+// --- MANEJADOR PRINCIPAL DE LA API ---
 export default async function handler(req, res) {
     await runMiddleware(req, res, corsMiddleware);
+    // Cache de Vercel: 60 segundos, con revalidación en segundo plano
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
-
 
     try {
         const db = await connectToDatabase();
@@ -49,7 +51,32 @@ export default async function handler(req, res) {
             radius = null
         } = req.query;
 
-        // --- LÓGICA DE GEOLOCALIZACIÓN ---
+        // --- LISTAS DE REFERENCIA (PAÍSES ACTUALIZADOS) ---
+        const paises = [
+            // Solicitados
+            'Japón', 'China', 'Corea del Sur', 'Alemania', 'EEUU', 'Reino Unido', 'Suecia',
+            // Europa (UE y otros importantes)
+            'España', 'Francia', 'Italia', 'Portugal', 'Países Bajos', 'Bélgica', 'Austria',
+            'Bulgaria', 'Croacia', 'Chipre', 'República Checa', 'Dinamarca', 'Estonia',
+            'Finlandia', 'Grecia', 'Hungría', 'Irlanda', 'Letonia', 'Lituania', 'Luxemburgo',
+            'Malta', 'Polonia', 'Rumanía', 'Eslovaquia', 'Eslovenia', 'Suiza', 'Noruega',
+            // Otros
+            'Argentina'
+        ];
+
+        const ciudadesYProvincias = [
+            'Sevilla', 'Málaga', 'Granada', 'Cádiz', 'Córdoba', 'Huelva', 'Jaén', 'Almería',
+            'Madrid', 'Barcelona', 'Valencia', 'Murcia', 'Alicante', 'Bilbao', 'Zaragoza',
+            'Jerez', 'Úbeda', 'Baeza', 'Ronda', 'Estepona', 'Lebrija', 'Morón de la Frontera',
+            'Utrera', 'Algeciras', 'Cartagena', 'Logroño', 'Santander', 'Vitoria', 'Pamplona',
+            'Vigo', 'A Coruña', 'Oviedo', 'Gijón', 'León', 'Salamanca', 'Valladolid', 'Burgos',
+            'Cáceres', 'Badajoz', 'Toledo', 'Cuenca', 'Guadalajara', 'Albacete'
+        ];
+
+        // 1. INICIALIZAMOS EL PIPELINE DE AGREGACIÓN
+        let aggregationPipeline = [];
+
+        // 2. (OPCIONAL) ETAPA GEOESPACIAL: Si hay búsqueda por ubicación, DEBE ser la primera etapa.
         if (lat && lon && radius) {
             const latitude = parseFloat(lat);
             const longitude = parseFloat(lon);
@@ -59,105 +86,31 @@ export default async function handler(req, res) {
                 return res.status(400).json({ message: 'Parámetros de geolocalización inválidos.' });
             }
 
-            const events = await eventsCollection.aggregate([
-                {
-                    $geoNear: {
-                        near: {
-                            type: 'Point',
-                            coordinates: [longitude, latitude]
-                        },
-                        distanceField: 'dist.calculated',
-                        maxDistance: searchRadiusMeters,
-                        spherical: true
-                    }
-                },
-                {
-                    $group: {
-                        _id: { date: "$date", artist: "$artist" },
-                        firstEvent: { $first: "$$ROOT" }
-                    }
-                },
-                {
-                    $replaceRoot: {
-                        newRoot: "$firstEvent"
-                    }
-                },
-                {
-                    $addFields: {
-                        contentStatus: "$contentStatus",
-                        blogPostUrl: "$blogPostUrl"
-                    }
+            aggregationPipeline.push({
+                $geoNear: {
+                    near: { type: 'Point', coordinates: [longitude, latitude] },
+                    distanceField: 'dist.calculated',
+                    maxDistance: searchRadiusMeters,
+                    spherical: true
                 }
-            ]).toArray();
-
-            return res.status(200).json({ events, isAmbigious: false });
+            });
         }
 
-        // --- LÓGICA DE BÚSQUEDA GENERAL (código existente) ---
-        const ciudadesYProvincias = [
-            'Sevilla', 'Málaga', 'Granada', 'Cádiz', 'Córdoba', 'Huelva', 'Jaén', 'Almería',
-            'Madrid', 'Barcelona', 'Valencia', 'Murcia', 'Alicante', 'Bilbao', 'Zaragoza',
-            'Jerez', 'Úbeda', 'Baeza', 'Ronda', 'Estepona', 'Lebrija', 'Morón de la Frontera',
-            'Utrera', 'Algeciras', 'Cartagena', 'Logroño', 'Santander', 'Vitoria', 'Pamplona',
-            'Vigo', 'A Coruña', 'Oviedo', 'Gijón', 'León', 'Salamanca', 'Valladolid', 'Burgos',
-            'Cáceres', 'Badajoz', 'Toledo', 'Cuenca', 'Guadalajara', 'Albacete'
-        ];
-        const paises = ['Argentina', 'España', 'Francia'];
-        const terminosAmbiguos = {
-            'argentina': { type: 'multi', options: ['country', 'artist'] },
-        };
-
-        const matchFilter = {};
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        matchFilter.date = { $gte: today.toISOString().split('T')[0] };
-        matchFilter.name = { $ne: null, $nin: ["", "N/A"] };
-        matchFilter.artist = { $ne: null, $nin: ["", "N/A"] };
-        matchFilter.time = { $ne: null, $nin: ["", "N/A"] };
-        matchFilter.venue = { $ne: null, $nin: ["", "N/A"] };
-
-        let aggregationPipeline = [];
-
-        if (search) {
+        // 3. (OPCIONAL) ETAPA DE BÚSQUEDA DE TEXTO (ATLAS SEARCH)
+        // Solo la usamos si NO hay una búsqueda geoespacial (tienen conflictos de prioridad).
+        if (search && !lat) {
             const normalizedSearch = search.trim().toLowerCase();
-
-            if (terminosAmbiguos[normalizedSearch] && preferredOption) {
-                return res.status(200).json({
-                    isAmbiguous: true,
-                    searchTerm: search,
-                    options: terminosAmbiguos[normalizedSearch].options,
-                });
-            }
-
             let searchType = null;
-            if (preferredOption) {
-                searchType = preferredOption;
-            } else if (ciudadesYProvincias.some(cp => cp.toLowerCase() === normalizedSearch)) {
+
+            if (ciudadesYProvincias.some(cp => cp.toLowerCase() === normalizedSearch)) {
                 searchType = 'city';
-            } else if (paises.some(p => p.toLowerCase() === normalizedSearch)) {
+            } else if (paises.some(p => p.toLowerCase().includes(normalizedSearch))) {
                 searchType = 'country';
             } else {
                 searchType = 'text';
             }
 
-            if (searchType === 'city') {
-                const locationRegex = new RegExp(search, 'i');
-                matchFilter.$or = [{ city: locationRegex }, { provincia: locationRegex }];
-            } else if (searchType === 'country') {
-                matchFilter.country = { $regex: new RegExp(`^${search}$`, 'i') };
-            } else if (searchType === 'artist') {
-                aggregationPipeline.push({
-                    $search: {
-                        index: 'buscador',
-                        text: {
-                            query: search,
-                            path: 'artist',
-                            fuzzy: { "maxEdits": 1 }
-                        }
-                    }
-                });
-            } else { // 'text'
+            if (searchType === 'text') {
                 aggregationPipeline.push({
                     $search: {
                         index: 'buscador',
@@ -171,46 +124,78 @@ export default async function handler(req, res) {
             }
         }
 
+        // 4. CONSTRUIMOS EL FILTRO `$match` PARA EL RESTO DE CONDICIONES
+        const matchFilter = {};
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Filtros por defecto que casi siempre aplican
+        matchFilter.date = { $gte: today.toISOString().split('T')[0] };
+        matchFilter.name = { $ne: null, $nin: ["", "N/A"] };
+
+        // Aplicamos el término de búsqueda como un filtro normal si hay geolocalización
+        if (search && lat) {
+            const searchRegex = new RegExp(search, 'i');
+            matchFilter.$or = [
+                { name: searchRegex },
+                { artist: searchRegex },
+                { city: searchRegex },
+                { venue: searchRegex }
+            ];
+        }
+
+        // Añadimos el resto de filtros de los query params
         if (city) {
             const locationRegex = new RegExp(city, 'i');
-            matchFilter.$or = [{ city: locationRegex }, { provincia: locationRegex }];
+            matchFilter.city = locationRegex;
         }
-        if (country) matchFilter.country = { $regex: new RegExp(`^${country}$`, 'i') };
-        if (artist) matchFilter.artist = { $regex: new RegExp(artist, 'i') };
-        if (dateFrom) matchFilter.date.$gte = dateFrom;
-        if (dateTo) matchFilter.date.$lte = dateTo;
+        if (country) {
+            matchFilter.country = { $regex: new RegExp(`^${country}$`, 'i') };
+        }
+        if (artist) {
+            matchFilter.artist = { $regex: new RegExp(artist, 'i') };
+        }
+        if (dateFrom) {
+            matchFilter.date.$gte = dateFrom;
+        }
+        if (dateTo) {
+            matchFilter.date.$lte = dateTo;
+        }
         if (timeframe === 'week' && !dateTo) {
             const nextWeek = new Date(today);
             nextWeek.setDate(today.getDate() + 7);
             matchFilter.date.$lte = nextWeek.toISOString().split('T')[0];
         }
 
+        // 5. AÑADIMOS LOS FILTROS Y OTRAS ETAPAS AL PIPELINE
         aggregationPipeline.push({ $match: matchFilter });
+
+        // Agrupamos para eliminar duplicados (mismo artista, misma fecha)
         aggregationPipeline.push({
             $group: {
-                _id: { date: "$date", artist: "$artist" },
+                _id: { date: "$date", artist: "$artist", name: "$name" },
                 firstEvent: { $first: "$$ROOT" }
             }
         });
-        // AÑADIDO: Filtrar cualquier grupo que haya resultado en un evento nulo
-        aggregationPipeline.push({
-            $match: {
-                firstEvent: { $ne: null }
-            }
-        });
-        aggregationPipeline.push({
-            $replaceRoot: {
-                newRoot: "$firstEvent"
-            }
-        });
+
+        aggregationPipeline.push({ $replaceRoot: { newRoot: "$firstEvent" } });
+
+        // Aseguramos que los campos de estado del blog estén presentes
         aggregationPipeline.push({
             $addFields: {
                 contentStatus: '$contentStatus',
                 blogPostUrl: '$blogPostUrl'
             }
         });
-        aggregationPipeline.push({ $sort: { date: 1 } });
 
+        // 6. (OPCIONAL) ORDENACIÓN FINAL
+        // Si hubo búsqueda geoespacial, los resultados ya vienen ordenados por distancia.
+        // Si no, los ordenamos por fecha.
+        if (!lat) {
+            aggregationPipeline.push({ $sort: { date: 1 } });
+        }
+
+        // 7. EJECUTAMOS EL PIPELINE
         const events = await eventsCollection.aggregate(aggregationPipeline).toArray();
         res.status(200).json({ events, isAmbiguous: false });
 
