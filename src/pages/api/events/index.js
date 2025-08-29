@@ -65,7 +65,7 @@ export default async function handler(req, res) {
         ];
 
         const ciudadesYProvincias = [
-            'Sevilla', 'Málaga', 'Granada', 'Cádiz', 'Córdoba', 'Huelva', 'Jaén', 'Almería',
+            'Sevilla', 'Málaga', 'Granada', 'Cádiz', 'Ceuta' 'Córdoba', 'Huelva', 'Jaén', 'Almería',
             'Madrid', 'Barcelona', 'Valencia', 'Murcia', 'Alicante', 'Bilbao', 'Zaragoza',
             'Jerez', 'Úbeda', 'Baeza', 'Ronda', 'Estepona', 'Lebrija', 'Morón de la Frontera',
             'Utrera', 'Algeciras', 'Cartagena', 'Logroño', 'Santander', 'Vitoria', 'Pamplona',
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
             'Cáceres', 'Badajoz', 'Toledo', 'Cuenca', 'Guadalajara', 'Albacete'
         ];
 
-        // 1. INICIALIZAMOS EL PIPELINE DE AGREGACIÓN
+        // 1. INICIALIZAMOS de EL PIPELINE DE AGREGACIÓN
         let aggregationPipeline = [];
 
         // 2. (OPCIONAL) ETAPA GEOESPACIAL: Si hay búsqueda por ubicación, DEBE ser la primera etapa.
