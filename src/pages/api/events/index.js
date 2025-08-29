@@ -52,6 +52,12 @@ export default async function handler(req, res) {
             featured = null
         } = req.query;
 
+        // --- LISTA DE ARTISTAS DESTACADOS ---
+        const featuredArtists = [
+            'Farruquito', 'Pedro el Granaino', 'Miguel Poveda', 'Argentina',
+            'Marina Heredia', 'Tomatito', 'Alba Heredia', 'Ivan Vargas'
+        ];
+
         // --- LISTAS DE REFERENCIA ---
         const paises = [
             'Japón', 'China', 'Corea del Sur', 'Alemania', 'EEUU', 'Reino Unido', 'Suecia',
@@ -61,7 +67,6 @@ export default async function handler(req, res) {
             'Malta', 'Polonia', 'Rumanía', 'Eslovaquia', 'Eslovenia', 'Suiza', 'Noruega',
             'Argentina'
         ];
-
         const ciudadesYProvincias = [
             'Sevilla', 'Málaga', 'Granada', 'Cádiz', 'Ceuta', 'Córdoba', 'Huelva', 'Jaén', 'Almería',
             'Madrid', 'Barcelona', 'Valencia', 'Murcia', 'Alicante', 'Bilbao', 'Zaragoza',
@@ -79,11 +84,9 @@ export default async function handler(req, res) {
             const latitude = parseFloat(lat);
             const longitude = parseFloat(lon);
             const searchRadiusMeters = (parseFloat(req.query.radius) || 60) * 1000;
-
             if (isNaN(latitude) || isNaN(longitude) || isNaN(searchRadiusMeters)) {
                 return res.status(400).json({ message: 'Parámetros de geolocalización inválidos.' });
             }
-
             aggregationPipeline.push({
                 $geoNear: {
                     near: { type: 'Point', coordinates: [longitude, latitude] },
@@ -98,8 +101,6 @@ export default async function handler(req, res) {
         const matchFilter = {};
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-
-        // Filtros por defecto
         matchFilter.date = { $gte: today.toISOString().split('T')[0] };
         matchFilter.name = { $ne: null, $nin: ["", "N/A"] };
 
@@ -120,7 +121,12 @@ export default async function handler(req, res) {
             }
         }
 
-        // Nuevos filtros
+        // NUEVA LÓGICA PARA FILTRAR POR ARTISTAS DESTACADOS
+        if (featured === 'true') {
+            matchFilter.artist = { $in: featuredArtists };
+        }
+
+        // Añade el resto de filtros si existen
         if (artist) matchFilter.artist = { $regex: new RegExp(artist, 'i') };
         if (city) matchFilter.city = { $regex: new RegExp(city, 'i') };
         if (country) matchFilter.country = { $regex: new RegExp(`^${country}$`, 'i') };
@@ -130,11 +136,6 @@ export default async function handler(req, res) {
             const nextWeek = new Date(today);
             nextWeek.setDate(today.getDate() + 7);
             matchFilter.date.$lte = nextWeek.toISOString().split('T')[0];
-        }
-
-        // FILTRO PARA SLIDERS: "FEATURED"
-        if (featured === 'true') {
-            matchFilter.featured = true;
         }
 
         aggregationPipeline.push({ $match: matchFilter });
