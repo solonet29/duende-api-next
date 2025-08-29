@@ -48,7 +48,6 @@ export default async function handler(req, res) {
             lat = null,
             lon = null,
             radius = null,
-            // NUEVOS PARÁMETROS
             sort = null,
             featured = null
         } = req.query;
@@ -162,11 +161,10 @@ export default async function handler(req, res) {
         if (sort === 'date' && req.query.order === 'desc') {
             sortOrder = { date: -1 };
         }
-        // Si hay una búsqueda de texto, ordenamos por relevancia (Atlas Search)
         if (search && !lat) {
             sortOrder = { score: { $meta: "textScore" } };
         }
-        // Si hay geolocalización, ya están ordenados por distancia
+
         if (!lat) {
             aggregationPipeline.push({ $sort: sortOrder });
         }
