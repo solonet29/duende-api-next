@@ -65,7 +65,7 @@ export default async function handler(req, res) {
         ];
 
         const ciudadesYProvincias = [
-            'Sevilla', 'Málaga', 'Granada', 'Cádiz', 'Ceuta' 'Córdoba', 'Huelva', 'Jaén', 'Almería',
+            'Sevilla', 'Málaga', 'Granada', 'Cádiz', 'Ceuta', 'Córdoba', 'Huelva', 'Jaén', 'Almería',
             'Madrid', 'Barcelona', 'Valencia', 'Murcia', 'Alicante', 'Bilbao', 'Zaragoza',
             'Jerez', 'Úbeda', 'Baeza', 'Ronda', 'Estepona', 'Lebrija', 'Morón de la Frontera',
             'Utrera', 'Algeciras', 'Cartagena', 'Logroño', 'Santander', 'Vitoria', 'Pamplona',
