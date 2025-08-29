@@ -10,7 +10,8 @@ const corsMiddleware = cors({
         'http://localhost:3000',
         'http://127.0.0.1:5500',
         'http://0.0.0.0:5500',
-        'http://localhost:5173'
+        'http://localhost:5173',
+        'https://duende-frontend-git-new-fro-50ee05-angel-picon-caleros-projects.vercel.app'
     ],
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -30,7 +31,6 @@ function runMiddleware(req, res, fn) {
 // --- MANEJADOR PRINCIPAL DE LA API ---
 export default async function handler(req, res) {
     await runMiddleware(req, res, corsMiddleware);
-    // Cache de Vercel: 60 segundos, con revalidación en segundo plano
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
 
     try {
@@ -45,22 +45,21 @@ export default async function handler(req, res) {
             dateFrom = null,
             dateTo = null,
             timeframe = null,
-            preferredOption = null,
             lat = null,
             lon = null,
-            radius = null
+            radius = null,
+            // NUEVOS PARÁMETROS
+            sort = null,
+            featured = null
         } = req.query;
 
-        // --- LISTAS DE REFERENCIA (PAÍSES ACTUALIZADOS) ---
+        // --- LISTAS DE REFERENCIA ---
         const paises = [
-            // Solicitados
             'Japón', 'China', 'Corea del Sur', 'Alemania', 'EEUU', 'Reino Unido', 'Suecia',
-            // Europa (UE y otros importantes)
             'España', 'Francia', 'Italia', 'Portugal', 'Países Bajos', 'Bélgica', 'Austria',
             'Bulgaria', 'Croacia', 'Chipre', 'República Checa', 'Dinamarca', 'Estonia',
             'Finlandia', 'Grecia', 'Hungría', 'Irlanda', 'Letonia', 'Lituania', 'Luxemburgo',
             'Malta', 'Polonia', 'Rumanía', 'Eslovaquia', 'Eslovenia', 'Suiza', 'Noruega',
-            // Otros
             'Argentina'
         ];
 
@@ -73,10 +72,10 @@ export default async function handler(req, res) {
             'Cáceres', 'Badajoz', 'Toledo', 'Cuenca', 'Guadalajara', 'Albacete'
         ];
 
-        // 1. INICIALIZAMOS de EL PIPELINE DE AGREGACIÓN
+        // 1. INICIALIZAMOS EL PIPELINE DE AGREGACIÓN
         let aggregationPipeline = [];
 
-        // 2. (OPCIONAL) ETAPA GEOESPACIAL: Si hay búsqueda por ubicación, DEBE ser la primera etapa.
+        // 2. ETAPA GEOESPACIAL: Si hay, DEBE ser la primera etapa.
         if (lat && lon && radius) {
             const latitude = parseFloat(lat);
             const longitude = parseFloat(lon);
@@ -96,91 +95,61 @@ export default async function handler(req, res) {
             });
         }
 
-        // 3. (OPCIONAL) ETAPA DE BÚSQUEDA DE TEXTO (ATLAS SEARCH)
-        // Solo la usamos si NO hay una búsqueda geoespacial (tienen conflictos de prioridad).
-        if (search && !lat) {
-            const normalizedSearch = search.trim().toLowerCase();
-            let searchType = null;
-
-            if (ciudadesYProvincias.some(cp => cp.toLowerCase() === normalizedSearch)) {
-                searchType = 'city';
-            } else if (paises.some(p => p.toLowerCase().includes(normalizedSearch))) {
-                searchType = 'country';
-            } else {
-                searchType = 'text';
-            }
-
-            if (searchType === 'text') {
-                aggregationPipeline.push({
-                    $search: {
-                        index: 'buscador',
-                        text: {
-                            query: search,
-                            path: { 'wildcard': '*' },
-                            fuzzy: { "maxEdits": 1 }
-                        }
-                    }
-                });
-            }
-        }
-
-        // 4. CONSTRUIMOS EL FILTRO `$match` PARA EL RESTO DE CONDICIONES
+        // 3. ETAPA DE BÚSQUEDA Y FILTRADO
         const matchFilter = {};
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // Filtros por defecto que casi siempre aplican
+        // Filtros por defecto
         matchFilter.date = { $gte: today.toISOString().split('T')[0] };
         matchFilter.name = { $ne: null, $nin: ["", "N/A"] };
 
-        // Aplicamos el término de búsqueda como un filtro normal si hay geolocalización
-        if (search && lat) {
-            const searchRegex = new RegExp(search, 'i');
-            matchFilter.$or = [
-                { name: searchRegex },
-                { artist: searchRegex },
-                { city: searchRegex },
-                { venue: searchRegex }
-            ];
+        // Lógica de búsqueda avanzada
+        if (search && !lat) {
+            const normalizedSearch = search.trim().toLowerCase();
+            if (ciudadesYProvincias.some(cp => cp.toLowerCase() === normalizedSearch)) {
+                matchFilter.city = { $regex: new RegExp(`^${normalizedSearch}$`, 'i') };
+            } else if (paises.some(p => p.toLowerCase().includes(normalizedSearch))) {
+                matchFilter.country = { $regex: new RegExp(`^${normalizedSearch}$`, 'i') };
+            } else {
+                matchFilter.$or = [
+                    { name: { $regex: new RegExp(search, 'i') } },
+                    { artist: { $regex: new RegExp(search, 'i') } },
+                    { city: { $regex: new RegExp(search, 'i') } },
+                    { venue: { $regex: new RegExp(search, 'i') } }
+                ];
+            }
         }
 
-        // Añadimos el resto de filtros de los query params
-        if (city) {
-            const locationRegex = new RegExp(city, 'i');
-            matchFilter.city = locationRegex;
-        }
-        if (country) {
-            matchFilter.country = { $regex: new RegExp(`^${country}$`, 'i') };
-        }
-        if (artist) {
-            matchFilter.artist = { $regex: new RegExp(artist, 'i') };
-        }
-        if (dateFrom) {
-            matchFilter.date.$gte = dateFrom;
-        }
-        if (dateTo) {
-            matchFilter.date.$lte = dateTo;
-        }
+        // Nuevos filtros
+        if (artist) matchFilter.artist = { $regex: new RegExp(artist, 'i') };
+        if (city) matchFilter.city = { $regex: new RegExp(city, 'i') };
+        if (country) matchFilter.country = { $regex: new RegExp(`^${country}$`, 'i') };
+        if (dateFrom) matchFilter.date.$gte = dateFrom;
+        if (dateTo) matchFilter.date.$lte = dateTo;
         if (timeframe === 'week' && !dateTo) {
             const nextWeek = new Date(today);
             nextWeek.setDate(today.getDate() + 7);
             matchFilter.date.$lte = nextWeek.toISOString().split('T')[0];
         }
 
-        // 5. AÑADIMOS LOS FILTROS Y OTRAS ETAPAS AL PIPELINE
+        // FILTRO PARA SLIDERS: "FEATURED"
+        if (featured === 'true') {
+            matchFilter.featured = true;
+        }
+
         aggregationPipeline.push({ $match: matchFilter });
 
-        // Agrupamos para eliminar duplicados (mismo artista, misma fecha)
+        // Agrupamos para eliminar duplicados
         aggregationPipeline.push({
             $group: {
                 _id: { date: "$date", artist: "$artist", name: "$name" },
                 firstEvent: { $first: "$$ROOT" }
             }
         });
-
         aggregationPipeline.push({ $replaceRoot: { newRoot: "$firstEvent" } });
 
-        // Aseguramos que los campos de estado del blog estén presentes
+        // Añadimos campos de estado del blog
         aggregationPipeline.push({
             $addFields: {
                 contentStatus: '$contentStatus',
@@ -188,14 +157,21 @@ export default async function handler(req, res) {
             }
         });
 
-        // 6. (OPCIONAL) ORDENACIÓN FINAL
-        // Si hubo búsqueda geoespacial, los resultados ya vienen ordenados por distancia.
-        // Si no, los ordenamos por fecha.
+        // 4. ORDENACIÓN FINAL
+        let sortOrder = { date: 1 };
+        if (sort === 'date' && req.query.order === 'desc') {
+            sortOrder = { date: -1 };
+        }
+        // Si hay una búsqueda de texto, ordenamos por relevancia (Atlas Search)
+        if (search && !lat) {
+            sortOrder = { score: { $meta: "textScore" } };
+        }
+        // Si hay geolocalización, ya están ordenados por distancia
+        if (!lat) {
+            aggregationPipeline.push({ $sort: sortOrder });
+        }
 
-        aggregationPipeline.push({ $sort: { date: 1 } });
-
-
-        // 7. EJECUTAMOS EL PIPELINE
+        // 5. EJECUTAMOS EL PIPELINE
         const events = await eventsCollection.aggregate(aggregationPipeline).toArray();
         res.status(200).json({ events, isAmbiguous: false });
 
