@@ -1,3 +1,4 @@
+
 import Image from "next/image";
 import { Geist, Geist_Mono } from "next/font/google";
 import { useState, useEffect } from "react";
@@ -14,6 +15,7 @@ const geistMono = Geist_Mono({
 
 // Función para convertir la clave VAPID de base64url a un Uint8Array
 function urlBase64ToUint8Array(base64String) {
+  if (typeof window === 'undefined') return;
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding)
     .replace(/\-/g, '+')
@@ -29,9 +31,13 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 export default function Home() {
+  // States for Push Notifications
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [subscription, setSubscription] = useState(null);
   const [registration, setRegistration] = useState(null);
+
+  // State for Welcome Modal
+  const [showWelcome, setShowWelcome] = useState(true);
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
@@ -84,6 +90,8 @@ export default function Home() {
 
       setSubscription(sub);
       setIsSubscribed(true);
+      // Opcional: cerrar el modal tras suscribirse
+      // setShowWelcome(false); 
     } catch (err) {
       console.error("Error al suscribir al usuario:", err);
     }
@@ -111,25 +119,17 @@ export default function Home() {
     }
   };
 
+  const handleCloseWelcome = () => {
+    setShowWelcome(false);
+  };
+
   return (
     <div
       className={`${geistSans.className} ${geistMono.className} font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20`}
     >
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        {/* Sección de Notificaciones Push */}
-        <div className="text-center p-6 border rounded-lg shadow-md">
-            <h2 className="text-2xl font-bold mb-4">Notificaciones Push</h2>
-            <p className="mb-4">Haz clic en el botón para suscribirte o cancelar tu suscripción a las notificaciones.</p>
-            <button 
-                onClick={isSubscribed ? unsubscribeUser : subscribeUser}
-                className={`rounded-full font-medium text-sm sm:text-base h-12 px-6 transition-colors ${isSubscribed ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
-                disabled={!registration}
-            >
-                {isSubscribed ? 'Cancelar Suscripción' : 'Suscribirse'}
-            </button>
-            {!registration && <p className="text-xs text-gray-500 mt-2">Inicializando service worker...</p>}
-        </div>
-
+        
+        {/* Contenido principal de la página */}
         <Image
           className="dark:invert"
           src="/next.svg"
@@ -176,6 +176,32 @@ export default function Home() {
           </a>
         </div>
       </main>
+
+      {/* --- Modal de Bienvenida con Suscripción Integrada --- */}
+      {showWelcome && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', textAlign: 'center', color: 'black', maxWidth: '400px' }}>
+            <span onClick={handleCloseWelcome} style={{ float: 'right', cursor: 'pointer', fontSize: '1.5rem' }}>&times;</span>
+            <h2 style={{ marginTop: 0 }}>¡Bienvenido a Duende Finder!</h2>
+            <p>Tu guía para encontrar los mejores eventos de flamenco.</p>
+            <p>Para no perderte ninguna novedad, activa las notificaciones.</p>
+            
+            <button 
+                onClick={isSubscribed ? unsubscribeUser : subscribeUser}
+                className={`rounded-full font-medium text-sm sm:text-base h-12 px-6 transition-colors ${isSubscribed ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
+                disabled={!registration}
+            >
+                {isSubscribed ? 'Cancelar Suscripción' : 'Activar Notificaciones'}
+            </button>
+            {!registration && <p className="text-xs text-gray-500 mt-2">Inicializando...</p>}
+
+            <button onClick={handleCloseWelcome} style={{ marginTop: '10px', marginLeft: '10px', background: 'grey', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '20px', cursor: 'pointer' }}>
+              Explorar
+            </button>
+          </div>
+        </div>
+      )}
+
       <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
         <a
           className="flex items-center gap-2 hover:underline hover:underline-offset-4"
