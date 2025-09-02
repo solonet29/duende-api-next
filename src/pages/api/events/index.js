@@ -33,7 +33,7 @@ export default async function handler(req, res) {
     await runMiddleware(req, res, corsMiddleware);
 
     try {
-        const db = await connectToDatabase();
+        const { db } = await connectToDatabase();
         const eventsCollection = db.collection("events");
 
         const {
