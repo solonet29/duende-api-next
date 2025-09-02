@@ -1,21 +1,18 @@
-// RUTA: /src/pages/api/generate-night-plan.js
-// VERSIÓN MIGRADADA A GROQ
+// RUTA: /src/pages/api/generate-night-plan.js (Versión Final Corregida)
 
 import { connectToDatabase } from '@/lib/database.js';
 import { ObjectId } from 'mongodb';
-import Groq from 'groq-sdk'; // CAMBIO 1: Importamos Groq en lugar de Gemini
+import Groq from 'groq-sdk';
 import cors from 'cors';
 
 // --- INICIALIZACIÓN DE SERVICIOS ---
-// CAMBIO 2: Verificamos y usamos la API Key de Groq
 if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY no está definida.');
 
-// CAMBIO 3: Inicializamos el cliente de Groq
 const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY
 });
 
-// --- MIDDLEWARE DE CORS (Sin cambios) ---
+// --- MIDDLEWARE DE CORS ---
 const allowedOrigins = [
     'https://buscador.afland.es',
     'https://duende-frontend.vercel.app',
@@ -46,30 +43,40 @@ function runMiddleware(req, res, fn) {
     });
 }
 
-// --- PROMPT MAESTRO (Sin cambios) ---
-const nightPlanPromptTemplate = (event, formattedDate) => `
-    // ... (Tu prompt completo aquí, no necesita cambios) ...
-`;
+
+// =======================================================================
+// --- LÓGICA DE GENERACIÓN DE CONTENIDO (SECCIÓN CORREGIDA) ---
+// =======================================================================
 
 async function generateAndSavePlan(db, event) {
     console.log(`🔥 Generando nuevo contenido con Groq para: ${event.name}`);
 
+    // --- LÓGICA DE FECHAS Y ENLACE DE GOOGLE MAPS ---
     const eventDate = new Date(event.date);
     const dateOptions = { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Madrid' };
     const formattedDate = eventDate.toLocaleDateString('es-ES', dateOptions);
 
-    const prompt = nightPlanPromptTemplate(event, formattedDate);
+    // Reconstruimos aquí la lógica para el enlace de Google Maps
+    const mapQuery = [
+        event.name,
+        event.venue,
+        event.city
+    ].filter(Boolean).join(', ');
 
-    // CAMBIO 4: Adaptamos la llamada a la API de Groq
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
+
+    // --- LLAMADA AL PROMPT ---
+    // Pasamos la 'mapsUrl' como un nuevo argumento a la plantilla
+    const prompt = nightPlanPromptTemplate(event, formattedDate, mapsUrl);
+
     const chatCompletion = await groq.chat.completions.create({
         messages: [{
             role: 'user',
             content: prompt,
         }],
-        model: 'llama-3.1-8b-instant', // CAMBIO 5: Seleccionamos un modelo de Groq (ej. Llama 3)
+        model: 'llama-3.1-8b-instant',
     });
 
-    // CAMBIO 6: Extraemos la respuesta del formato de Groq
     let generatedContent = chatCompletion.choices[0]?.message?.content || '';
 
     if (!generatedContent || !generatedContent.includes('---')) {
@@ -85,7 +92,45 @@ async function generateAndSavePlan(db, event) {
     return generatedContent;
 }
 
-// --- HANDLER DE LA RUTA (Sin cambios en la lógica principal) ---
+// =======================================================================
+// --- PROMPT MAESTRO RESTAURADO Y MEJORADO (CON GOOGLE MAPS) ---
+// =======================================================================
+const nightPlanPromptTemplate = (event, formattedDate, mapsUrl) => `
+# INSTRUCCIONES
+Eres "Duende Planner", un asistente experto en flamenco y cultura andaluza. Tu objetivo es crear un plan de noche atractivo y útil para un usuario que asistirá a un evento de flamenco. El tono debe ser cercano, apasionado y un poco poético, usando lenguaje que evoque la magia del flamenco. La respuesta DEBE estar en formato Markdown y estructurada con los separadores "---" como se indica.
+
+# CONTEXTO DEL EVENTO
+- **Artista Principal:** ${event.artist || 'Artista por confirmar'}
+- **Nombre del Evento:** ${event.name}
+- **Fecha:** ${formattedDate}
+- **Lugar:** ${event.venue || 'Lugar por confirmar'}, ${event.city || ''}
+- **Descripción:** ${event.description || 'Sin descripción detallada.'}
+
+# ESTRUCTURA DE LA RESPUESTA (OBLIGATORIA)
+
+### 🔮 Una Noche con Duende: ${event.artist || event.name}
+* **La Previa Perfecta:** Recomienda un bar de tapas o una taberna cercana al lugar del evento. Describe el ambiente y sugiere una o dos tapas y una bebida típica (ej: "un buen vino de Jerez", "una caña bien fría"). El objetivo es empezar a calentar motores para la noche flamenca.
+* **El Atuendo Ideal:** Sugiere un código de vestimenta. Debe ser elegante pero cómodo, algo que respete la ocasión sin ser excesivamente formal. Piensa en el "smart casual" con un toque andaluz.
+* **El Momento Cumbre:** Describe con emoción qué puede esperar el espectador del artista o del evento. Usa lenguaje evocador. Si no hay información del artista, habla sobre la magia del palo flamenco (si se conoce) o del flamenco en general.
+* **Después de los Aplausos:** Sugiere un lugar cercano para tomar la última copa, un sitio con encanto donde comentar la actuación.
+
+---
+### 💡 Consejos del Duende
+- **Puntualidad:** Recomienda llegar con tiempo para encontrar un buen sitio y disfrutar del ambiente previo.
+- **Respeto y Silencio:** Menciona la importancia de guardar silencio durante el espectáculo para respetar a los artistas y al "duende".
+- **Disfruta el Momento:** Anima al usuario a dejarse llevar por la música y la emoción.
+
+---
+### 🎟️ Ficha Rápida
+- **Qué:** ${event.name}
+- **Quién:** ${event.artist || 'Artista por confirmar'}
+- **Cuándo:** ${formattedDate} a las ${event.time || 'hora por confirmar'}
+- **Dónde:** ${event.venue || 'Lugar por confirmar'}, ${event.city || ''}
+- **Cómo llegar:** [Ver en Google Maps](${mapsUrl})
+`;
+
+
+// --- HANDLER DE LA RUTA ---
 export default async function handler(req, res) {
     await runMiddleware(req, res, corsMiddleware);
 
@@ -95,7 +140,7 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'El ID del evento no es válido.' });
         }
 
-        const { db } = await connectToDatabase(); // Obtenemos solo 'db' según nuestro lib/database.js
+        const { db } = await connectToDatabase();
 
         const eventsCollection = db.collection('events');
         const event = await eventsCollection.findOne({ _id: new ObjectId(eventId) });
@@ -116,5 +161,4 @@ export default async function handler(req, res) {
         console.error("Error en el endpoint de 'Planear Noche' con Groq:", error);
         return res.status(500).json({ error: 'Error al generar el contenido.' });
     }
-    // Nota: Eliminamos el bloque 'finally' para usar la conexión cacheada de la BBDD
 }
