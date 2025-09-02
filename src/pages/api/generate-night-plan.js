@@ -66,7 +66,7 @@ async function generateAndSavePlan(db, event) {
             role: 'user',
             content: prompt,
         }],
-        model: 'llama3-8b-8192', // CAMBIO 5: Seleccionamos un modelo de Groq (ej. Llama 3)
+        model: 'llama-3.1-8b-instant', // CAMBIO 5: Seleccionamos un modelo de Groq (ej. Llama 3)
     });
 
     // CAMBIO 6: Extraemos la respuesta del formato de Groq
