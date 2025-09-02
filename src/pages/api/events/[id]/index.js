@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const db = await connectToDatabase();
+        const { db } = await connectToDatabase();
         const eventsCollection = db.collection("events");
 
         // Buscamos un único documento que coincida con el ID
