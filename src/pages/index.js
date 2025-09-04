@@ -39,7 +39,21 @@ export default function Home() {
   // State for Welcome Modal
   const [showWelcome, setShowWelcome] = useState(true);
 
+  // State for Event Count
+  const [eventCount, setEventCount] = useState(0);
+
   useEffect(() => {
+    // Fetch event count
+    fetch('/api/events/count')
+      .then(res => res.json())
+      .then(data => {
+        if (data.total) {
+          setEventCount(data.total);
+        }
+      })
+      .catch(console.error);
+
+    // Service Worker registration
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js")
         .then(reg => {
@@ -129,6 +143,12 @@ export default function Home() {
     >
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
         
+        <div className="w-full text-center mb-4">
+          <p className="text-lg">
+            Tenemos: <span className="font-bold text-xl">{eventCount}</span> eventos en nuestro buscador
+          </p>
+        </div>
+
         {/* Contenido principal de la página */}
         <Image
           className="dark:invert"
