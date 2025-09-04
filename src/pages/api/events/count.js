@@ -28,12 +28,10 @@ export default async function handler(req, res) {
 
   res.setHeader('Cache-control', 'no-store, max-age=0');
   try {
-    // --- CAMBIO CLAVE AQUÍ ---
-    // 1. connectToDatabase() devuelve el cliente, no la base de datos.
-    const client = await connectToDatabase();
-    // 2. Ahora seleccionamos la base de datos que queremos usar.
-    const db = client.db("DuendeDB");
-    // --- FIN DEL CAMBIO ---
+    // --- LA CORRECCIÓN DEFINITIVA ---
+    // Tu función devuelve un objeto, y extraemos la propiedad 'db' de él.
+    const { db } = await connectToDatabase();
+    // --- FIN DE LA CORRECCIÓN ---
 
     const eventsCollection = db.collection("events");
 
