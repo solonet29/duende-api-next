@@ -28,16 +28,19 @@ export default async function handler(req, res) {
 
   res.setHeader('Cache-control', 'no-store, max-age=0');
   try {
-    const db = await connectToDatabase();
+    // --- CAMBIO CLAVE AQUÍ ---
+    // 1. connectToDatabase() devuelve el cliente, no la base de datos.
+    const client = await connectToDatabase();
+    // 2. Ahora seleccionamos la base de datos que queremos usar.
+    const db = client.db("DuendeDB");
+    // --- FIN DEL CAMBIO ---
+
     const eventsCollection = db.collection("events");
 
-    // --- CORRECCIÓN AQUÍ ---
-    // Creamos un objeto Date para el inicio del día de hoy
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Lo ajustamos a medianoche
+    today.setHours(0, 0, 0, 0);
 
     const count = await eventsCollection.countDocuments({
-      // Usamos el objeto Date en la consulta, no un string
       date: { $gte: today },
       name: { $ne: null, $nin: ["", "N/A"] },
       artist: { $ne: null, $nin: ["", "N/A"] },
