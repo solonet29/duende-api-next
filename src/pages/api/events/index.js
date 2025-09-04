@@ -172,11 +172,6 @@ export default async function handler(req, res) {
         // 5. EJECUTAMOS EL PIPELINE
         const events = await eventsCollection.aggregate(aggregationPipeline).toArray();
 
-        // --- LÍNEA CLAVE AÑADIDA PARA EL CACHÉ ---
-        // Esto le dice a Vercel que guarde esta respuesta en su caché perimetral
-        // por 30 minutos (1800 segundos).
-        res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=59');
-
         res.status(200).json({ events, isAmbiguous: false });
 
     } catch (err) {
