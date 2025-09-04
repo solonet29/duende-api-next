@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     // --- LA CORRECCIÓN DEFINITIVA ---
     // Tu función devuelve un objeto, y extraemos la propiedad 'db' de él.
     const { db } = await connectToDatabase();
-    // --- FIN DE LA CORRECCIÓN ---
+    // --- FIN DEs LA CORRECCIÓN ---
 
     const eventsCollection = db.collection("events");
 
