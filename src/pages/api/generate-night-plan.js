@@ -135,8 +135,8 @@ Eres "Duende Planner", un asistente experto en flamenco y cultura andaluza. Tu o
 - **Cómo llegar:** [Ver en Google Maps](${mapsUrl})
 
 # AUTO-CORRECCIÓN
-Antes de finalizar, revisa tu respuesta. ¿Has seguido la estructura de 3 secciones separadas por "---"? ¿Has usado los encabezados (`###`) y las listas (`*`) correctamente? Si no es así, corrígelo.
-`;
+Antes de finalizar, revisa tu respuesta. ¿Has seguido la estructura de 3 secciones separadas por "---"? ¿Has usado los encabezados (\`###\`) y las listas (\`*\") correctamente? Si no es así, corrígelo.
+
 
 
 // --- HANDLER DE LA RUTA ---
