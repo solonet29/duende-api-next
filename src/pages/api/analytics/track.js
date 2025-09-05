@@ -1,6 +1,6 @@
 // pages/api/analytics/track.js
 
-import { UserInteraction } from '../../../config/db'; // ❗Ajusta la ruta a tu archivo de conexión DB
+import { UserInteraction } from '@/lib/database'; // ❗Ajusta la ruta a tu archivo de conexión DB
 
 export default async function handler(req, res) {
     // Solo permitimos peticiones POST a este endpoint
