@@ -1,7 +1,7 @@
 // pages/api/analytics/summary/total-views.js
 
 // ❗ Ajusta la ruta para que apunte a tu archivo de conexión a la BD
-import { UserInteraction } from '../../../../config/db';
+import { UserInteraction } from '@/lib/database';
 
 export default async function handler(req, res) {
     // Este endpoint solo responde a peticiones GET
