@@ -1,7 +1,7 @@
 // pages/api/analytics/summary/total-views.js
 
-// ❗ Ajusta la ruta para que apunte a tu archivo de conexión a la BD
-import { UserInteraction } from '@/lib/database';
+// 1. Importamos la FUNCIÓN que nos da el modelo, no el modelo directamente.
+import { getUserInteractionModel } from '@/lib/database';
 
 export default async function handler(req, res) {
     // Este endpoint solo responde a peticiones GET
@@ -11,9 +11,15 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Usamos el método countDocuments de Mongoose para contar eficientemente
+        // 2. Obtenemos el modelo. Esta llamada también se encarga
+        //    de gestionar y asegurar la conexión a la base de datos de analíticas.
+        const UserInteraction = await getUserInteractionModel();
+
         // Contamos solo las interacciones de tipo 'eventView'
         const count = await UserInteraction.countDocuments({ type: 'eventView' });
+
+        // 3. (Mejora) Añadimos la caché para mejorar el rendimiento y ahorrar recursos
+        res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
 
         // Enviamos la respuesta con el total
         return res.status(200).json({ totalViews: count });
