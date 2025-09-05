@@ -34,9 +34,12 @@ export default async function handler(req, res) {
     await runMiddleware(req, res, corsMiddleware);
 
     try {
-        console.log("API /events: Petición recibida con query:", req.query);
-
         const Event = await getEventModel();
+
+        // ▼▼▼ PRUEBA DEFINITIVA ▼▼▼
+        // Le pedimos al modelo que nos diga el nombre de la base de datos a la que está conectado.
+        console.log(`DIAGNÓSTICO: Conectado a la base de datos -> "${Event.db.name}"`);
+        // ▲▲▲ FIN DE LA PRUEBA ▲▲▲
 
         const {
             search = null, artist = null, city = null, country = null,
@@ -75,7 +78,7 @@ export default async function handler(req, res) {
 
         const matchFilter = {};
 
-        // ▼▼▼ CAMBIO DE DEPURACIÓN ▼▼▼
+        // ▼▼▼ CAMBIO DE DEPURACIÓN: FILTRO DE FECHA DESACTIVADO ▼▼▼
         console.log("--- MODO DEPURACIÓN: Filtro de fecha DESACTIVADO ---");
         // const today = new Date();
         // today.setHours(0, 0, 0, 0);
@@ -107,7 +110,6 @@ export default async function handler(req, res) {
         if (dateFrom) matchFilter.date = { ...(matchFilter.date || {}), $gte: dateFrom };
         if (dateTo) matchFilter.date = { ...(matchFilter.date || {}), $lte: dateTo };
 
-        // Lógica de timeframe movida aquí para no interferir con el filtro desactivado
         if (timeframe === 'week' && !dateTo) {
             const todayForWeek = new Date();
             todayForWeek.setHours(0, 0, 0, 0);
@@ -125,8 +127,6 @@ export default async function handler(req, res) {
         if (sort === 'date' && req.query.order === 'desc') sortOrder = { date: -1 };
         if (search && !lat) sortOrder = { score: { $meta: "textScore" } };
         if (!lat) aggregationPipeline.push({ $sort: sortOrder });
-
-        console.log("API /events: Pipeline de agregación final:", JSON.stringify(aggregationPipeline, null, 2));
 
         const events = await Event.aggregate(aggregationPipeline);
 
