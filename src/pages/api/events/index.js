@@ -12,7 +12,7 @@ const corsMiddleware = cors({
         'http://0.0.0.0:5500',
         'http://localhost:5173',
         'https://duende-frontend-git-new-fro-50ee05-angel-picon-caleros-projects.vercel.app',
-        'https://duende-control-panel.vercel.app' // Añadido para el panel
+        'https://duende-control-panel.vercel.app'
     ],
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -74,12 +74,14 @@ export default async function handler(req, res) {
         }
 
         const matchFilter = {};
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
 
-        // --- LA CORRECCIÓN CRÍTICA DEL FORMATO DE FECHA ---
-        const todayString = today.toISOString().split('T')[0];
-        matchFilter.date = { $gte: todayString };
+        // ▼▼▼ CAMBIO DE DEPURACIÓN ▼▼▼
+        console.log("--- MODO DEPURACIÓN: Filtro de fecha DESACTIVADO ---");
+        // const today = new Date();
+        // today.setHours(0, 0, 0, 0);
+        // const todayString = today.toISOString().split('T')[0];
+        // matchFilter.date = { $gte: todayString };
+        // ▲▲▲ FIN DEL CAMBIO ▲▲▲
 
         matchFilter.name = { $ne: null, $nin: ["", "N/A"] };
 
@@ -102,12 +104,16 @@ export default async function handler(req, res) {
         if (artist) matchFilter.artist = { $regex: new RegExp(artist, 'i') };
         if (city) matchFilter.city = { $regex: new RegExp(city, 'i') };
         if (country) matchFilter.country = { $regex: new RegExp(`^${country}$`, 'i') };
-        if (dateFrom) matchFilter.date.$gte = dateFrom;
-        if (dateTo) matchFilter.date.$lte = dateTo;
+        if (dateFrom) matchFilter.date = { ...(matchFilter.date || {}), $gte: dateFrom };
+        if (dateTo) matchFilter.date = { ...(matchFilter.date || {}), $lte: dateTo };
+
+        // Lógica de timeframe movida aquí para no interferir con el filtro desactivado
         if (timeframe === 'week' && !dateTo) {
-            const nextWeek = new Date(today);
-            nextWeek.setDate(today.getDate() + 7);
-            matchFilter.date.$lte = nextWeek.toISOString().split('T')[0];
+            const todayForWeek = new Date();
+            todayForWeek.setHours(0, 0, 0, 0);
+            const nextWeek = new Date(todayForWeek);
+            nextWeek.setDate(todayForWeek.getDate() + 7);
+            matchFilter.date = { ...(matchFilter.date || {}), $lte: nextWeek.toISOString().split('T')[0] };
         }
 
         aggregationPipeline.push({ $match: matchFilter });
@@ -125,6 +131,11 @@ export default async function handler(req, res) {
         const events = await Event.aggregate(aggregationPipeline);
 
         console.log(`API /events: Consulta finalizada. Eventos encontrados: ${events.length}`);
+
+        if (events.length > 0) {
+            console.log("API /events: Mostrando los 3 primeros resultados encontrados:");
+            console.log(JSON.stringify(events.slice(0, 3), null, 2));
+        }
 
         res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
         res.status(200).json({ events, isAmbiguous: false });
