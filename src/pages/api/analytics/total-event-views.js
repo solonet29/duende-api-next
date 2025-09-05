@@ -1,6 +1,6 @@
 // src/pages/api/analytics/total-event-views.js
 
-import { connectToDatabase } from '@/lib/database.js';
+import { connectToAnalyticsDb } from '@/lib/database.js';
 import cors from 'cors';
 
 // Helper para ejecutar middleware de Express/Connect
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
 
   try {
     // Conectar a la base de datos
-    const { db } = await connectToDatabase();
+    const db = await connectToAnalyticsDb();
 
     // Acceder a la colección donde se guardan las interacciones
     const interactionsCollection = db.collection("interactions");

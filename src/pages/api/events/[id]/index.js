@@ -1,4 +1,4 @@
-import { connectToDatabase } from '@/lib/database.js';
+import { connectToMainDb } from '@/lib/database.js';
 import { ObjectId } from 'mongodb'; // Importante para buscar por ID
 
 export default async function handler(req, res) {
@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { db } = await connectToDatabase();
+        const db = await connectToMainDb();
         const eventsCollection = db.collection("events");
 
         // Buscamos un único documento que coincida con el ID

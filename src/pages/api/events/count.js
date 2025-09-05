@@ -1,6 +1,6 @@
 // src/pages/api/events/count.js
 
-import { connectToDatabase } from '@/lib/database.js';
+import { connectToMainDb } from '@/lib/database.js';
 import cors from 'cors';
 
 function runMiddleware(req, res, fn) {
@@ -28,10 +28,7 @@ export default async function handler(req, res) {
 
   res.setHeader('Cache-control', 'no-store, max-age=0');
   try {
-    // --- LA CORRECCIÓN DEFINITIVA ---
-    // Tu función devuelve un objeto, y extraemos la propiedad 'db' de él.
-    const { db } = await connectToDatabase();
-    // --- FIN DEs LA CORRECCIÓN ---
+    const db = await connectToMainDb();
 
     const eventsCollection = db.collection("events");
 

@@ -1,4 +1,4 @@
-import { connectToDatabase } from '@/lib/database.js';
+import { connectToMainDb } from '@/lib/database.js';
 import cors from 'cors';
 
 // --- CONFIGURACIÓN DE CORS ---
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
     await runMiddleware(req, res, corsMiddleware);
 
     try {
-        const { db } = await connectToDatabase();
+        const db = await connectToMainDb();
         const eventsCollection = db.collection("events");
 
         const {

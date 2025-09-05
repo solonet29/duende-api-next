@@ -1,7 +1,7 @@
 // RUTA: /src/pages/api/admin/regenerate-all-plans.js
 // VERSIÓN "CARRERA DE RELEVOS" PARA EVITAR TIMEOUTS
 
-import { connectToDatabase } from '@/lib/database.js';
+import { connectToMainDb } from '@/lib/database.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // --- CONFIGURACIÓN Y LÓGICA DE GENERACIÓN (Igual que antes) ---
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     if (offset === 0) {
         console.log('--- INICIANDO REGENERACIÓN MASIVA DE TODOS LOS PLANES (LOTE 1) ---');
         try {
-            const db = await connectToDatabase();
+            const db = await connectToMainDb();
             console.log('Borrando todos los nightPlan antiguos...');
             await db.collection('events').updateMany({ nightPlan: { $exists: true } }, { $unset: { nightPlan: "" } });
             console.log('Planes antiguos eliminados.');
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
 
     console.log(`--- Procesando lote desde el evento #${offset} ---`);
     try {
-        const db = await connectToDatabase();
+        const db = await connectToMainDb();
         const eventsCollection = db.collection('events');
 
         const today = new Date();

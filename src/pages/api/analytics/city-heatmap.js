@@ -1,6 +1,6 @@
 // src/pages/api/analytics/city-heatmap.js
 
-import { connectToDatabase } from '@/lib/database.js';
+import { connectToAnalyticsDb } from '@/lib/database.js';
 import cors from 'cors';
 
 // Helper para ejecutar middleware
@@ -39,7 +39,7 @@ export default async function handler(req, res) {
   res.setHeader('Cache-control', 's-maxage=3600, stale-while-revalidate'); // Cache por 1 hora
 
   try {
-    const { db } = await connectToDatabase();
+    const db = await connectToAnalyticsDb();
     const interactionsCollection = db.collection("interactions");
 
     const pipeline = [

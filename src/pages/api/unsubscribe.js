@@ -1,5 +1,5 @@
 // RUTA: /src/pages/api/unsubscribe.js
-import { connectToDatabase } from '../../../lib/database';
+import { connectToMainDb } from '../../../lib/database';
 
 export default async function handler(req, res) {
   const allowedOrigins = ['https://buscador.afland.es', 'http://localhost:5173'];
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const db = await connectToDatabase();
+    const db = await connectToMainDb();
     const collection = db.collection('push_subscriptions');
 
     const result = await collection.deleteOne({ endpoint: endpoint });

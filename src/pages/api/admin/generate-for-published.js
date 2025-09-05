@@ -1,7 +1,7 @@
 // RUTA: /src/pages/api/admin/generate-for-published.js
 // MISIÓN: Generar 'nightPlan' SOLO para posts que ya están en WordPress.
 
-import { connectToDatabase } from '@/lib/database.js';
+import { connectToMainDb } from '@/lib/database.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const BATCH_SIZE = 15; // Un lote pequeño para respetar la cuota de Gemini
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const db = await connectToDatabase();
+        const db = await connectToMainDb();
         const eventsCollection = db.collection('events');
 
         // ESTA ES LA BÚSQUEDA CLAVE Y ESPECÍFICA

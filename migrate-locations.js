@@ -1,6 +1,6 @@
 // migrate-locations.js
 require('dotenv').config({ path: './.env.local' }); // Asegúrate que apunte a tu archivo .env
-const { connectToDatabase, closeDatabaseConnection } = require('./lib/database.js'); // Asumo que tienes una función para cerrar la conexión
+const { connectToMainDb, closeDatabaseConnection } = require('./lib/database.js'); // Asumo que tienes una función para cerrar la conexión
 const axios = require('axios');
 const { ObjectId } = require('mongodb');
 
@@ -13,7 +13,7 @@ async function migrateLocations() {
 
     try {
         // --- 1. CONECTAR A LA BASE DE DATOS ---
-        db = await connectToDatabase();
+        db = await connectToMainDb();
         const eventsCollection = db.collection('events');
         console.log('✅ Conexión a la base de datos exitosa.');
 

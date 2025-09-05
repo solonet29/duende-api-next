@@ -1,4 +1,4 @@
-import { connectToDatabase } from '@/lib/database.js';
+import { connectToMainDb } from '@/lib/database.js';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { db } = await connectToDatabase();
+        const db = await connectToMainDb();
 
         const config = await db.collection('config').findOne({ _id: 'main_config' });
 

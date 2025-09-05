@@ -1,6 +1,6 @@
 // pages/api/analytics/track.js
 
-import { UserInteraction } from '@/lib/database'; // ❗Ajusta la ruta a tu archivo de conexión DB
+import { getUserInteractionModel } from '@/lib/database'; // ❗Ajusta la ruta a tu archivo de conexión DB
 
 export default async function handler(req, res) {
     // Solo permitimos peticiones POST a este endpoint
@@ -19,7 +19,8 @@ export default async function handler(req, res) {
 
         // Creamos la nueva instancia de la interacción
         // El modelo de Mongoose funciona exactamente igual aquí
-        const newInteraction = new UserInteraction({
+        const UserInteractionModel = await getUserInteractionModel();
+        const newInteraction = new UserInteractionModel({
             type,
             sessionId,
             details,

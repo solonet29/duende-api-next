@@ -1,5 +1,5 @@
 // RUTA: /src/pages/api/subscribe.js
-import { connectToDatabase } from '../../../lib/database';
+import { connectToMainDb } from '../../../lib/database';
 import '../../../lib/webPush';
 
 export default async function handler(req, res) {
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const db = await connectToDatabase();
+          const db = await connectToMainDb();
     const collection = db.collection('push_subscriptions');
 
     await collection.updateOne(

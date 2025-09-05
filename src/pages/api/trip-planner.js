@@ -1,4 +1,4 @@
-import { connectToDatabase } from '@/lib/database.js';
+import { connectToMainDb } from '@/lib/database.js';
 import Cors from 'cors';
 
 // --- MIDDLEWARE DE CORS ---
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
             }
 
             // 2. Busca eventos en la base de datos que coincidan con los criterios.
-            const db = await connectToDatabase();
+            const db = await connectToMainDb();
             const eventsCollection = db.collection("events");
 
             // MEJORA: Se convierten las fechas a objetos Date para una consulta más segura.

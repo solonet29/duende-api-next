@@ -1,6 +1,6 @@
 // RUTA: /src/pages/api/generate-night-plan.js (Versión Final Corregida)
 
-import { connectToDatabase } from '@/lib/database.js';
+import { connectToMainDb } from '@/lib/database.js';
 import { ObjectId } from 'mongodb';
 import Groq from 'groq-sdk';
 import cors from 'cors';
@@ -146,7 +146,7 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'El ID del evento no es válido.' });
         }
 
-        const { db } = await connectToDatabase();
+        const db = await connectToMainDb();
 
         const eventsCollection = db.collection('events');
         const event = await eventsCollection.findOne({ _id: new ObjectId(eventId) });
