@@ -1,3 +1,6 @@
+// RUTA: /src/pages/api/events/index.js
+// VERSIÓN FINAL DE PRODUCCIÓN
+
 import { getEventModel } from '@/lib/database.js';
 import cors from 'cors';
 
@@ -36,11 +39,6 @@ export default async function handler(req, res) {
     try {
         const Event = await getEventModel();
 
-        // ▼▼▼ PRUEBA DEFINITIVA ▼▼▼
-        // Le pedimos al modelo que nos diga el nombre de la base de datos a la que está conectado.
-        console.log(`DIAGNÓSTICO: Conectado a la base de datos -> "${Event.db.name}"`);
-        // ▲▲▲ FIN DE LA PRUEBA ▲▲▲
-
         const {
             search = null, artist = null, city = null, country = null,
             dateFrom = null, dateTo = null, timeframe = null, lat = null,
@@ -77,14 +75,12 @@ export default async function handler(req, res) {
         }
 
         const matchFilter = {};
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-        // ▼▼▼ CAMBIO DE DEPURACIÓN: FILTRO DE FECHA DESACTIVADO ▼▼▼
-        console.log("--- MODO DEPURACIÓN: Filtro de fecha DESACTIVADO ---");
-        // const today = new Date();
-        // today.setHours(0, 0, 0, 0);
-        // const todayString = today.toISOString().split('T')[0];
-        // matchFilter.date = { $gte: todayString };
-        // ▲▲▲ FIN DEL CAMBIO ▲▲▲
+        // --- FILTRO DE FECHA REACTIVADO Y CORREGIDO ---
+        const todayString = today.toISOString().split('T')[0];
+        matchFilter.date = { $gte: todayString };
 
         matchFilter.name = { $ne: null, $nin: ["", "N/A"] };
 
@@ -107,15 +103,12 @@ export default async function handler(req, res) {
         if (artist) matchFilter.artist = { $regex: new RegExp(artist, 'i') };
         if (city) matchFilter.city = { $regex: new RegExp(city, 'i') };
         if (country) matchFilter.country = { $regex: new RegExp(`^${country}$`, 'i') };
-        if (dateFrom) matchFilter.date = { ...(matchFilter.date || {}), $gte: dateFrom };
-        if (dateTo) matchFilter.date = { ...(matchFilter.date || {}), $lte: dateTo };
-
+        if (dateFrom) matchFilter.date.$gte = dateFrom;
+        if (dateTo) matchFilter.date.$lte = dateTo;
         if (timeframe === 'week' && !dateTo) {
-            const todayForWeek = new Date();
-            todayForWeek.setHours(0, 0, 0, 0);
-            const nextWeek = new Date(todayForWeek);
-            nextWeek.setDate(todayForWeek.getDate() + 7);
-            matchFilter.date = { ...(matchFilter.date || {}), $lte: nextWeek.toISOString().split('T')[0] };
+            const nextWeek = new Date(today);
+            nextWeek.setDate(today.getDate() + 7);
+            matchFilter.date.$lte = nextWeek.toISOString().split('T')[0];
         }
 
         aggregationPipeline.push({ $match: matchFilter });
@@ -130,18 +123,11 @@ export default async function handler(req, res) {
 
         const events = await Event.aggregate(aggregationPipeline);
 
-        console.log(`API /events: Consulta finalizada. Eventos encontrados: ${events.length}`);
-
-        if (events.length > 0) {
-            console.log("API /events: Mostrando los 3 primeros resultados encontrados:");
-            console.log(JSON.stringify(events.slice(0, 3), null, 2));
-        }
-
         res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
         res.status(200).json({ events, isAmbiguous: false });
 
     } catch (err) {
-        console.error("Error FATAL en /api/events:", err);
+        console.error("Error en /api/events:", err);
         res.status(500).json({ error: "Internal Server Error", details: err.message });
     }
 }
